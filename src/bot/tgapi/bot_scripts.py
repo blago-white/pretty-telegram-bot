@@ -15,7 +15,8 @@ def generate_drop_down_cities_list(pylist: list):
 def get_statement_by_stage(
         db_scripts,
         message: aiogram.types.Message,
-        logstage: int
+        logstage: int,
+        user_lang_code: str
 ) -> dataclass.ResultOperation:
     """
 
@@ -26,18 +27,20 @@ def get_statement_by_stage(
 
     """
 
+    print(user_lang_code, '--v')
+
     if logstage == 1:
 
         try:
             age = int(message.text)
 
             if not 10 < age < 99:
-                return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS['en']['invalid_t_age'])
+                return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS[user_lang_code]['invalid_t_age'])
 
-            return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS['en']['q_city'])
+            return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS[user_lang_code]['q_city'])
 
         except:
-            return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS['en']['invalid_v_age'])
+            return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS[user_lang_code]['invalid_v_age'])
 
     elif logstage == 2:
         if str.lower(str(message.text)) not in db_scripts.all_cities:
@@ -47,25 +50,25 @@ def get_statement_by_stage(
             if simular_cities:
                 return dataclass.ResultOperation(status=False, obj=generate_drop_down_cities_list(simular_cities))
 
-            return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS['en']['invalid_citi'])
+            return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS[user_lang_code]['invalid_citi'])
 
-        return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS['en']['q_sex'])
+        return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS[user_lang_code]['q_sex'])
 
     elif logstage == 3:
         if message.text in ('/man', '/woman'):
-            return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS['en']['q_desc'])
+            return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS[user_lang_code]['q_desc'])
 
-        return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS['en']['invalid_t_sex'])
+        return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS[user_lang_code]['invalid_t_sex'])
 
     elif logstage == 4:
 
         if len(message.text) > 350:
             return dataclass.ResultOperation(status=False,
-                                             obj=LANG_STATEMENTS['en']['invalid_l_desc'].format(
+                                             obj=LANG_STATEMENTS[user_lang_code]['invalid_l_desc'].format(
                                                  len(message.text)
                                              ))
 
-        return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS['en']['q_photo'])
+        return dataclass.ResultOperation(status=True, obj=LANG_STATEMENTS[user_lang_code]['q_photo'])
 
         # 'last one, send me your future profile photo!'
 
@@ -74,7 +77,7 @@ def get_statement_by_stage(
             return dataclass.ResultOperation(status=True)
 
         # 'send only photo please'
-        return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS['en']['invalid_t_photo'])
+        return dataclass.ResultOperation(status=False, obj=LANG_STATEMENTS[user_lang_code]['invalid_t_photo'])
 
     raise ValueError(logstage)
 
@@ -83,13 +86,16 @@ def get_profile_body(
         name: str,
         age: int,
         city: str,
-        desc: str) -> Union[dataclass.ResultOperation, str]:
+        desc: str,
+        user_lang_code: str
+) -> Union[dataclass.ResultOperation, str]:
     """
 
     :param name:
     :param age:
     :param city:
     :param desc:
+    :param user_lang_code:
 
     :retuens: Dataclasses.ResultOperation object
 
@@ -103,11 +109,11 @@ def get_profile_body(
     elif 1 < age % 10 < 5:
         declination = 'года'
 
-    account_text = LANG_STATEMENTS['en']['profile_templ'].format(name=name,
-                                                                 age=age,
-                                                                 declination=declination,
-                                                                 city=city.capitalize(),
-                                                                 desc=desc
-                                                                 )
+    account_text = LANG_STATEMENTS[user_lang_code]['profile_templ'].format(name=name,
+                                                                           age=age,
+                                                                           declination=declination,
+                                                                           city=city.capitalize(),
+                                                                           desc=desc
+                                                                           )
 
     return dataclass.ResultOperation(obj=account_text)

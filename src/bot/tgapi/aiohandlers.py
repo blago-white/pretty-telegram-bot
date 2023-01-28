@@ -21,7 +21,9 @@ def registrate_handlers(dp: aiogram.dispatcher, bot: handlers_scripts.MessageHan
     dp.register_callback_query_handler(bot.process_callback_button, lambda c: c.data)
 
     dp.register_message_handler(bot.send_sex_messages, commands=['man', 'woman'])
-    dp.register_message_handler(bot.send_welcome, commands=['start', 'help'])
+    dp.register_message_handler(bot.send_welcome, commands=['start'])
+    dp.register_message_handler(bot.handler_help, commands=['help'])
+    dp.register_message_handler(bot.restart, commands=['restart'])
     dp.register_message_handler(bot.handle_photo, content_types=['photo'])
     dp.register_message_handler(bot.text_handler, content_types=['text'])
 

@@ -23,7 +23,7 @@ MAX_LEN_SAMPLING_CITIES = 15
 
 MEDIUM_LEN_SAMPLING_CITIES = 4
 
-TYPES_MAIN_MESSAGES = (0, 1)
+TYPES_MAIN_MESSAGES = (0, 1, 2)
 
 LANG_CODES = dict(en_lang_select='en',
                   ru_lang_select='ru')
@@ -32,5 +32,7 @@ STAGE_BY_PAYLOAD = dict(change_photo=5,
                         change_age=1,
                         change_city=2,
                         change_description=3)
+
+DEFAULT_LANG = 'en'
 
 print('_____initializing______')

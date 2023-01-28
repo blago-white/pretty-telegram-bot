@@ -82,10 +82,9 @@ if __name__ == '__main__':
                    15: "DELETE FROM main_messages WHERE telegram_id={} AND message_type={}",
                    16: "SELECT message_id FROM main_messages WHERE telegram_id={} AND message_type={}",
                    17: "SELECT * FROM {};",
-                   18: "SELECT first_name FROM users WHERE telegram_id = {};",
                    19: "SELECT * FROM {} WHERE telegram_id = {};",
                    20: "DELETE FROM {} WHERE telegram_id = {};",
-                   21: "UPDATE users SET language='{}' WHERE telegram_id={};"
+                   21: "UPDATE users SET language='{}' WHERE telegram_id={};",
                    }, f)
 
     with open(paths.dictpaths['statements_en'], 'w') as en_statements_file:
@@ -95,6 +94,7 @@ if __name__ == '__main__':
                                    continue_warn='continue registration please:\n{}',
                                    acc_send_warn='your account did not sending try later',
                                    start_warn='send command /start to _bot please',
+                                   help='if you find a bug, please tell me - @VictorMerinov and /restart the bot',
                                    invalid_t_age='not correct value of age (10 - 99)',
                                    invalid_v_age='age must be integer (11, 12, ..., 99)',
                                    invalid_citi='enter a larger city please',
@@ -108,7 +108,7 @@ if __name__ == '__main__':
                                    q_age='how <b>old</b> are you?',
                                    btn_change=u'\u270Fchange info',
                                    btn_creator='🤙creator',
-                                   btn_del_acc=u'\u274Cdelete my account',
+                                   btn_del_acc=u'\u2728find people',
                                    btn_en_lang='en🇬🇧',
                                    btn_ru_lang='ru🇷🇺',
                                    btn_back='📛back',

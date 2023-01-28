@@ -1,3 +1,5 @@
+from typing import Union
+
 from src.bot.bin import dataclass
 from src.bot.bin.jsons import json_getters
 from src.bot.db import sqlexecutor
@@ -5,7 +7,8 @@ from src.etc.config import (MAX_LEN_SAMPLING_CITIES,
                             STATEMENT_FOR_STAGE,
                             LIMIT_REGISTRATION_STAGES,
                             MEDIUM_LEN_SAMPLING_CITIES,
-                            TYPES_MAIN_MESSAGES)
+                            TYPES_MAIN_MESSAGES,
+                            DEFAULT_LANG)
 
 
 class DBGetMethods:
@@ -53,17 +56,6 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(obj=result_list)
 
-    def get_annotation_by_id(self, ids: int) -> dataclass.ResultOperation:
-        """
-
-        function getting all user data from _database
-
-        :param ids: integer, user id
-
-        """
-
-        return self.get_user_entry(ids=ids)
-
     def get_logging_info(self, ids: int) -> dataclass.ResultOperation:
         response = self._database.complete_transaction(ids, number_temp=1)
 
@@ -106,11 +98,22 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(obj=result)
 
-    def get_user_entry(self, ids):
-        response = self._database.complete_transaction(ids, number_temp=18).object
+    def get_user_lang_code(self, ids):
+        lang_response = self.get_user_data_by_table(ids=ids, table_name='users')
 
-        if response:
-            results = [self._database.complete_transaction(name, ids, number_temp=19) for name in
+        if lang_response.object:
+            if lang_response.object[-1]:
+                return lang_response.object[-1][-1]
+
+        return DEFAULT_LANG
+
+    def get_user_data_by_table(self, ids: int, table_name: str) -> dataclass.ResultOperation:
+        return self._database.complete_transaction(table_name, ids, number_temp=19)
+
+    def get_user_entrys(self, ids):
+        if self.get_user_data_by_table(ids=ids, table_name='users').status:
+
+            results = [self.get_user_data_by_table(ids=ids, table_name=name) for name in
                        self._database.USER_DATA_TABLES]
 
             for r in results:
@@ -171,8 +174,6 @@ class DBSetMethods:
 
         else:
             response = self._database.complete_transaction(file_id, ids, number_temp=6)
-
-        print(response.status, response.description)
 
         return dataclass.ResultOperation(obj=response)
 
@@ -244,7 +245,7 @@ class DBSetMethods:
         return dataclass.ResultOperation()
 
     def del_user_annotations(self, ids):
-        for dbname in self._database.USER_DATA_TABLES:
+        for dbname in self._database.TABLES:
             self._database.complete_transaction(dbname, ids, number_temp=20)
 
     def add_user_entry(self, **user_data):
@@ -313,7 +314,6 @@ class Database(DBGetMethods, DBSetMethods):
         db_settings = json_getters.get_setings_db()
 
         if not db_settings.status:
-            print(db_settings.status, db_settings.description)
             raise RuntimeError('json getting error')
 
         self._database = sqlexecutor.Execute(NameDB=db_settings.object['namedb'],
