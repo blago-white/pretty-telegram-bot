@@ -31,8 +31,15 @@ LANG_CODES = dict(en_lang_select='en',
 STAGE_BY_PAYLOAD = dict(change_photo=5,
                         change_age=1,
                         change_city=2,
-                        change_description=3)
+                        change_description=4)
 
 DEFAULT_LANG = 'en'
 
-print('_____initializing______')
+MAX_DELAY_TIME_SECONDS = 20
+
+DEFAULT_LOGGING_TYPE = 1
+DEFAULT_LOGGING_STAGE = 1
+
+STAGE_BLOCKED_TEXT_MESSAGES = (3, )
+
+DEFAULT_DELAY = 2

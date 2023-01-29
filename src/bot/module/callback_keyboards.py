@@ -30,9 +30,19 @@ inline_kb_change_prof_en.add(inline_btn2, inline_btn3, inline_btn4, inline_btn1,
 
 inline_kb_change_prof_by_lang = {'en': inline_kb_change_prof_en}
 
-inline_btn1 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_en_lang'], callback_data='lang%en_lang_select')
-inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_ru_lang'], callback_data='lang%ru_lang_select')
-inline_lang_kb = InlineKeyboardMarkup(row_width=2)
-inline_lang_kb.add(inline_btn1, inline_btn2)
+inline_btn1 = InlineKeyboardButton(LANG_STATEMENTS['en']['man'], callback_data='sex%man')
+inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['woman'], callback_data='sex%woman')
+
+inline_kb_set_sex_en = InlineKeyboardMarkup(row_width=2)
+inline_kb_set_sex_en.add(inline_btn1, inline_btn2)
 
 inline_empty_kb = InlineKeyboardMarkup()
+
+inline_markup_by_stage = {
+    0: inline_empty_kb,
+    1: inline_empty_kb,
+    2: inline_kb_set_sex_en,
+    3: inline_empty_kb,
+    4: inline_empty_kb,
+    5: inline_empty_kb
+}

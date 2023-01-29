@@ -26,11 +26,11 @@ class MessageManage:
         """
 
         try:
-            await message.reply(description, parse_mode=parse_mode)
-            return dataclass.ResultOperation()
+            sending_response = await message.reply(description, parse_mode=parse_mode)
+            return dataclass.ResultOperation(sending_response.message_id)
 
         except:
-            return dataclass.ResultOperation(status=False, desc='sending error')
+            return dataclass.ResultOperation(status=False, description='sending error')
 
     async def photo_sender(
             self,
@@ -51,22 +51,22 @@ class MessageManage:
 
         try:
             if keyboard:
-                await self.bot.send_photo(chat_id=ids,
-                                          photo=photo,
-                                          caption=description,
-                                          reply_markup=keyboard,
-                                          parse_mode=parse_mode)
+                sending_response = await self.bot.send_photo(chat_id=ids,
+                                                             photo=photo,
+                                                             caption=description,
+                                                             reply_markup=keyboard,
+                                                             parse_mode=parse_mode)
 
             else:
-                await self.bot.send_photo(chat_id=ids,
-                                          photo=photo,
-                                          caption=description,
-                                          parse_mode=parse_mode)
+                sending_response = await self.bot.send_photo(chat_id=ids,
+                                                             photo=photo,
+                                                             caption=description,
+                                                             parse_mode=parse_mode)
 
-            return dataclass.ResultOperation()
+            return dataclass.ResultOperation(object=sending_response.message_id)
 
         except:
-            return dataclass.ResultOperation(status=False, desc='sending error')
+            return dataclass.ResultOperation(status=False, description='sending error')
 
     async def sender(
             self,
@@ -85,17 +85,22 @@ class MessageManage:
         """
 
         try:
-            await self.bot.send_message(chat_id=ids, text=description, parse_mode=parse_mode, reply_markup=markup)
-            return dataclass.ResultOperation()
+            sending_response = await self.bot.send_message(chat_id=ids,
+                                                           text=description,
+                                                           parse_mode=parse_mode,
+                                                           reply_markup=markup)
+
+            return dataclass.ResultOperation(object=sending_response.message_id)
 
         except Exception as e:
             print(e)
-            return dataclass.ResultOperation(status=False, desc='sender error')
+            return dataclass.ResultOperation(status=False, description='sender error')
 
     async def send_except_message(
             self,
             ids: int,
             description: str = None,
+            markup: aiogram.types.InlineKeyboardMarkup = None,
             parse_mode: aiogram.types.ParseMode = ParseMode.HTML) -> dataclass.ResultOperation:
         """
         :param ids: integer, user id
@@ -108,13 +113,18 @@ class MessageManage:
         if description is None:
             description = LANG_STATEMENTS['en']['fatal_err']
 
-        try:
-            await self.bot.send_message(ids, LANG_STATEMENTS['en']['exception_templ'].format(description),
-                                        parse_mode=parse_mode)
-            return dataclass.ResultOperation()
+        if markup:
+            sending_response = await self.bot.send_message(ids,
+                                                           LANG_STATEMENTS['en']['exception_templ'].format(description),
+                                                           parse_mode=parse_mode,
+                                                           reply_markup=markup)
 
-        except:
-            return dataclass.ResultOperation(status=False, desc='sending error')
+        else:
+            sending_response = await self.bot.send_message(ids,
+                                                           LANG_STATEMENTS['en']['exception_templ'].format(description),
+                                                           parse_mode=parse_mode)
+
+        return dataclass.ResultOperation(object=sending_response.message_id)
 
     async def message_scavenger(
             self,
@@ -132,17 +142,18 @@ class MessageManage:
         try:
             if type(idmes) is not int:
                 response = [await self.bot.delete_message(ids, idms) for idms in idmes]
+
                 if None in response:
-                    return dataclass.ResultOperation(status=False, desc='deliting error')
+                    return dataclass.ResultOperation(status=False, description='deliting error')
 
                 return dataclass.ResultOperation()
 
             response = await self.bot.delete_message(ids, idmes)
             if not response:
-                return dataclass.ResultOperation(status=False, desc='deliting error')
+                return dataclass.ResultOperation(status=False, description='deliting error')
 
             return dataclass.ResultOperation()
 
         except Exception as e:
             print(e)
-            return dataclass.ResultOperation(status=False, desc=str(e))
+            return dataclass.ResultOperation(status=False, description=str(e))

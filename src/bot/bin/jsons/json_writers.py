@@ -39,7 +39,7 @@ def write_settings_db(**params: dict[str]) -> dataclass.ResultOperation:
     with open(paths.dictpaths['dbconfig'], 'w') as settings_file:
         json.dump(present_settings, settings_file)
 
-    return dataclass.ResultOperation(obj=result)
+    return dataclass.ResultOperation(object=result)
 
 
 @decorators.trying()
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                    4: "UPDATE states SET logging=True, logging_type={}, logging_stage={} WHERE telegram_id={};",
                    5: "INSERT INTO photos VALUES ({}, '{}');",
                    6: "UPDATE photos SET photo_id='{}' WHERE telegram_id={}",
-                   7: "INSERT INTO users VALUES ({}, '{}', '{}', '{}', '{}', NULL);",
+                   7: "INSERT INTO users VALUES ({}, '{}', '{}', '{}', '{}', 'en');",
                    8: "INSERT INTO states VALUES ({}, {}, {}, {});",
                    9: "INSERT INTO info_users VALUES ({});",
                    10: "UPDATE info_users SET age={} WHERE telegram_id={};",
@@ -88,21 +88,21 @@ if __name__ == '__main__':
                    }, f)
 
     with open(paths.dictpaths['statements_en'], 'w') as en_statements_file:
-        json.dump(obj=dict(en=dict(welcome='\u270B hello, <b>{}</b>, i am - pretty _bot, my creator - @VictorMerinov',
+        json.dump(obj=dict(en=dict(welcome='\u270B hello, <b>{}</b>, i am - pretty bot, my creator - @VictorMerinov',
                                    welcome_back=u'<b>welcome back \u2764</b>',
                                    entry_registration='first you need to create your resume, <b>enter you age</b>',
                                    continue_warn='continue registration please:\n{}',
                                    acc_send_warn='your account did not sending try later',
                                    start_warn='send command /start to _bot please',
                                    help='if you find a bug, please tell me - @VictorMerinov and /restart the bot',
+                                   change_lang_good='language succesfully changed to <b>English</b>',
                                    invalid_t_age='not correct value of age (10 - 99)',
                                    invalid_v_age='age must be integer (11, 12, ..., 99)',
                                    invalid_citi='enter a larger city please',
-                                   invalid_t_sex='please, choose right answer: \n/man or /woman',
                                    invalid_l_desc="maximum lenhgt - 350 literals (you give '<b>{}</b> symbols)",
                                    invalid_t_photo='send only photo please',
                                    q_city='wich <b>city</b> wour from?',
-                                   q_sex='what your <b>sex</b>?\n/man or /woman',
+                                   q_sex='what your <b>sex</b>?',
                                    q_desc='tell me a little <b>about you</b>',
                                    q_photo=u'\u2728last one, send me your future profile photo',
                                    q_age='how <b>old</b> are you?',
@@ -124,6 +124,8 @@ if __name__ == '__main__':
                                    q_new_city='enter new city',
                                    q_new_desc='enter new description',
                                    profile_templ='{name}, {age} {declination}, {city}\n<i>{desc}</i>',
+                                   man='i\'m man',
+                                   woman='i\'m woman',
                                    overflow='...',
                                    exception_templ=u'🙃 {}'
                                    )),

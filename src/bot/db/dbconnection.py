@@ -54,9 +54,7 @@ class Connections:
         self.TABLES = data['data']['tables']
 
         if json_getters.get_condition('restart').object:
-            self.delete_data_from_db(connection=self.CONNECTION,
-                                     tables=self.TABLES
-                                     )
+            self.delete_data_from_db()
 
             json_writers.write_condition(cond=False)
 
@@ -113,7 +111,7 @@ class Connections:
 
             except:
                 json_writers.write_condition(cond=True)
-                return dataclass.ResultOperation(status=False, desc='error with deleting from _db_scripts')
+                return dataclass.ResultOperation(status=False, description='error with deleting from _db_scripts')
 
         self.CONNECTION.commit()
 
@@ -124,15 +122,14 @@ def execute_query(
 
     with connection.cursor() as con:
 
-        try:
-            con.execute(sqlquery)
+        con.execute(sqlquery)
 
-        except:
-            return dataclass.ResultOperation(status=False, desc='Error with executing')
+        # except:
+        #     return dataclass.ResultOperation(status=False, description='Error with executing')
 
         try:
             data = con.fetchall()
-            return dataclass.ResultOperation(obj=data)
+            return dataclass.ResultOperation(object=data)
 
         except:
             connection.commit()

@@ -10,7 +10,7 @@ class Execute(Connections):
     def complete_transaction(self, *args, number_temp: int, template: str = None):
 
         if not template and not number_temp:
-            return dataclass.ResultOperation(status=False, desc='args-error')
+            return dataclass.ResultOperation(status=False, description='args-error')
 
         if not template:
             template = self.TEMPLATES[str(number_temp)]
@@ -19,7 +19,7 @@ class Execute(Connections):
         response = self.execute_query_(sqlquery=template)
 
         if not response.status:
-            return dataclass.ResultOperation(status=False, desc='DB error')
+            return dataclass.ResultOperation(status=False, description='DB error')
 
-        return dataclass.ResultOperation(status=True, obj=response.object)
+        return dataclass.ResultOperation(status=True, object=response.object)
 

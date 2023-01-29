@@ -18,9 +18,9 @@ from src.bot.bin.jsons import json_getters
 
 def registrate_handlers(dp: aiogram.dispatcher, bot: handlers_scripts.MessageHandlers):
 
-    dp.register_callback_query_handler(bot.process_callback_button, lambda c: c.data)
+    dp.register_callback_query_handler(bot.process_callback_button, lambda call: call.data)
 
-    dp.register_message_handler(bot.send_sex_messages, commands=['man', 'woman'])
+    dp.register_message_handler(bot.change_language, commands=['en'])
     dp.register_message_handler(bot.send_welcome, commands=['start'])
     dp.register_message_handler(bot.handler_help, commands=['help'])
     dp.register_message_handler(bot.restart, commands=['restart'])

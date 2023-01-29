@@ -15,7 +15,7 @@ def trying(on_exception: str = None):
             try:
                 return function(*args, **kwargs)
             except Exception as e:
-                return dataclass.ResultOperation(status=False, desc=on_exception if on_exception else e)
+                return dataclass.ResultOperation(status=False, description=on_exception if on_exception else e)
 
         return wrapper_
 

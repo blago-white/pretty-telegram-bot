@@ -6,8 +6,8 @@ from src.bot.db import dbscripts
 from src.bot.module import message_manager
 from src.bot.module.callback_keyboards import (inline_profile_kb_by_lang,
                                                inline_kb_change_prof_by_lang,
-                                               inline_lang_kb,
-                                               inline_empty_kb)
+                                               inline_empty_kb,
+                                               inline_markup_by_stage)
 
 
 class CallbacksHandler:
@@ -30,6 +30,10 @@ class CallbacksHandler:
         return dict(type_request=payload_string.split('%')[0],
                     type_requested_operation=payload_string.split('%')[1])
 
+    @staticmethod
+    def get_inline_kb_by_stage(stage_logging: int):
+        return inline_markup_by_stage[stage_logging]
+
     async def process_callback_by_id(
             self,
             payload: dict,
@@ -37,6 +41,7 @@ class CallbacksHandler:
             idquery: int,
             message: int,
             user_lang_code: str,
+            stage_logging: int = None,
             alert_text=None) -> dataclass.ResultOperation:
         """
 
@@ -58,6 +63,7 @@ class CallbacksHandler:
             await self._bot.answer_callback_query(idquery)
 
         type_request, type_requested_operation = payload.values()
+        sending_response = None
 
         if type_request == 'main':
             if type_requested_operation == 'change_profile_data':
@@ -77,36 +83,49 @@ class CallbacksHandler:
                                          markup=inline_empty_kb)
 
             if type_requested_operation == 'change_photo':
-                await self._message_manager.sender(ids, description=LANG_STATEMENTS[user_lang_code]['q_new_photo'])
+                sending_response = await self._message_manager.sender(ids,
+                                                                      description=LANG_STATEMENTS[
+                                                                          user_lang_code]['q_new_photo']
+                                                                      )
 
             elif type_requested_operation == 'change_age':
-                await self._message_manager.sender(ids, description=LANG_STATEMENTS[user_lang_code]['q_new_age'])
+                sending_response = await self._message_manager.sender(ids,
+                                                                      description=LANG_STATEMENTS[
+                                                                          user_lang_code]['q_new_age']
+                                                                      )
 
             elif type_requested_operation == 'change_city':
-                await self._message_manager.sender(ids, description=LANG_STATEMENTS[user_lang_code]['q_new_city'])
+                sending_response = await self._message_manager.sender(ids,
+                                                                      description=LANG_STATEMENTS[
+                                                                          user_lang_code]['q_new_city']
+                                                                      )
 
             elif type_requested_operation == 'change_description':
-                await self._message_manager.sender(ids, description=LANG_STATEMENTS[user_lang_code]['q_new_desc'])
+                sending_response = await self._message_manager.sender(ids,
+                                                                      description=LANG_STATEMENTS[
+                                                                          user_lang_code]['q_new_desc']
+                                                                      )
 
             elif type_requested_operation == 'back':
                 await self.change_markup(ids=ids,
                                          messageid=message,
                                          markup=inline_profile_kb_by_lang[user_lang_code])
 
-        elif type_request == 'lang':
+        elif type_request == 'sex':
+            if not stage_logging:
+                return
 
-            lang_code = LANG_CODES[type_requested_operation]
+            self._db_scripts.record_user_data_by_stage(
+                ids=ids,
+                message_text=True if type_requested_operation == 'man' else False,
+                logstage=stage_logging
+            )
 
-            self._db_scripts.set_user_lang(ids=ids, lang_code=lang_code)
-
-            select_lang_msg_id = int(self._db_scripts.get_main_message(ids=ids, type_message=1).object)
-
-            self._db_scripts.del_main_message_from_db(ids=ids, type_message=1)
-
-            await self._message_manager.message_scavenger(ids=ids, idmes=select_lang_msg_id)
-            await self._message_manager.sender(ids=ids,
-                                               description=LANG_STATEMENTS[lang_code]['entry_registration']
-                                               )
+        if sending_response:
+            if sending_response.object:
+                self._db_scripts.add_main_message_to_db(ids=ids,
+                                                        id_message=sending_response.object,
+                                                        type_message=1)
 
     async def change_markup(self, ids: int, messageid: int, markup: aiogram.types.InlineKeyboardMarkup):
         await self._bot.edit_message_reply_markup(chat_id=ids, message_id=messageid, reply_markup=markup)
