@@ -9,8 +9,7 @@ from src.bot.tgapi import aiohandlers
 
 
 def main():
-    json_writers.write_debug_mode(True)
-    json_writers.write_settings_db(debug=True)
+    json_writers.write_settings_db(debug=False)
 
     scripts = dbscripts.Database()
 

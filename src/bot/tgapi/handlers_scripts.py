@@ -9,7 +9,6 @@ from src.bot.db import dbscripts
 from src.bot.tgapi import helper_bot_scripts
 from src.etc.config import (STATEMENT_FOR_STAGE,
                             LANG_STATEMENTS,
-                            STAGE_BY_PAYLOAD,
                             TYPES_MAIN_MESSAGES,
                             DEFAULT_LANG,
                             DEFAULT_DELAY,
@@ -23,17 +22,21 @@ class MessageHandlers:
     callback_handler: callbacks
     message_manager_: message_manager.MessageManage
     bot_helper_scripts_: helper_bot_scripts.HelperScripts
+    bot: aiogram.Bot
 
     def __init__(self, scripts_class_instance: dbscripts.Database, bot: aiogram.Bot):
         self.database = scripts_class_instance
 
         self.message_manager_ = message_manager.MessageManage(bot=bot)
 
+        self.bot_helper_scripts_ = helper_bot_scripts.HelperScripts(database_scripts=self.database)
+
         self.callback_handler = callbacks.CallbacksHandler(db_scripts=self.database,
                                                            bot=bot,
-                                                           message_manager_=self.message_manager_)
+                                                           message_manager_=self.message_manager_,
+                                                           bot_helper_scripts=self.bot_helper_scripts_)
 
-        self.bot_helper_scripts_ = helper_bot_scripts.HelperScripts(database_scripts=self.database)
+        self.bot = bot
 
     # juyhnjhgbhjhyhnhjhyhy87y676y677yu97887u8797878989u87yuty7gtygtt66y756tr]
 
@@ -59,36 +62,6 @@ class MessageHandlers:
                                                            message=callback_query.message.message_id,
                                                            user_lang_code=user_lang_code,
                                                            stage_logging=stage_logging)
-
-        if payload.get('type_request') == 'sex':
-            await self.bot_helper_scripts_.delete_requirement_message(
-                message_manager=self.message_manager_,
-                user_id=user_id)
-
-            response_sending = await self.message_manager_.sender(ids=user_id,
-                                                                  description=LANG_STATEMENTS[
-                                                                      user_lang_code
-                                                                  ]['q_desc']
-                                                                  )
-
-            self.database.add_main_message_to_db(ids=user_id,
-                                                 id_message=response_sending.object,
-                                                 type_message=1)
-
-            self.database.change_state_logging(ids=user_id,
-                                               logtype=1,
-                                               logstage=stage_logging + 1)
-
-        if payload.get('type_requested_operation') in STAGE_BY_PAYLOAD.keys():
-            stage = STAGE_BY_PAYLOAD[payload.get('type_requested_operation')]
-
-            response = self.database.change_state_logging(ids=user_id,
-                                                          logtype=2,
-                                                          logstage=stage
-                                                          )
-
-            if not response.status:
-                await self.message_manager_.send_except_message(ids=user_id)
 
         return
 
@@ -139,10 +112,14 @@ class MessageHandlers:
 
             if user_logging_condition.object[0]:
 
-                markup = self.callback_handler.get_inline_kb_by_stage(stage_logging=user_logging_condition.object[-1] 
-                                                                                    - 1)
+                markup = callbacks.inline_empty_kb
+
+                if user_logging_condition.object[-1] == 2:
+                    markup = callbacks.inline_kb_set_sex_by_lang[user_lang_code]
+
                 statement = LANG_STATEMENTS[user_lang_code]['continue_warn'].format(STATEMENT_FOR_STAGE[
-                                                                                        user_logging_condition.object[2]]
+                                                                                        user_logging_condition.object[
+                                                                                            2]]
                                                                                     )
 
                 await self.message_manager_.message_scavenger(ids=user_id,
@@ -158,13 +135,26 @@ class MessageHandlers:
                                                      type_message=1)
 
             else:
-                await self.message_manager_.sender(ids=user_id,
-                                                   description=LANG_STATEMENTS[user_lang_code][
-                                                       'welcome_back'])
+                sending_response = await self.message_manager_.sender(ids=user_id,
+                                                                      description=LANG_STATEMENTS[user_lang_code][
+                                                                          'welcome_back'])
 
                 await self.bot_helper_scripts_.render_profile(user_id=user_id,
                                                               user_lang_code=user_lang_code,
                                                               message_manager=self.message_manager_)
+
+                past_welcome_message_id = self.database.get_main_message(ids=user_id,
+                                                                         type_message=2)
+
+                if past_welcome_message_id.object:
+                    self.database.del_main_message_from_db(ids=user_id,
+                                                           type_message=2)
+
+                    await self.message_manager_.message_scavenger(ids=user_id, idmes=past_welcome_message_id.object)
+
+                self.database.add_main_message_to_db(ids=user_id,
+                                                     id_message=sending_response.object,
+                                                     type_message=2)
 
         await self.message_manager_.message_scavenger(ids=user_id,
                                                       idmes=message.message_id,
@@ -258,7 +248,10 @@ class MessageHandlers:
                                                                         logstage=stage_logging,
                                                                         user_lang_code=user_lang_code)
 
-            markup = self.callback_handler.get_inline_kb_by_stage(stage_logging=stage_logging)
+            markup = callbacks.inline_empty_kb
+
+            if user_logging_data.object[-1] == 2:
+                markup = callbacks.inline_kb_set_sex_by_lang[user_lang_code]
 
             if statement.status:
 
@@ -308,11 +301,17 @@ class MessageHandlers:
     async def handler_help(self, message: aiogram.types.Message, user_id: int):
 
         user_lang_code = self.database.get_user_lang_code(ids=user_id)
-
-        await self.message_manager_.sender(ids=user_id,
-                                           description=LANG_STATEMENTS[user_lang_code]['help'])
+        sending_response = await self.message_manager_.sender(ids=user_id,
+                                                              description=LANG_STATEMENTS[
+                                                                  user_lang_code]['help']
+                                                              )
 
         await self.message_manager_.message_scavenger(ids=user_id, idmes=message.message_id)
+
+        await self.bot_helper_scripts_.start_delay(5)
+
+        await self.message_manager_.message_scavenger(ids=user_id,
+                                                      idmes=sending_response.object)
 
     @decorators.unpack_message
     async def restart(self, message: aiogram.types.Message, user_id: int):

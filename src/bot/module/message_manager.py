@@ -93,7 +93,7 @@ class MessageManage:
             return dataclass.ResultOperation(object=sending_response.message_id)
 
         except Exception as e:
-            print(e)
+            print(e, '---')
             return dataclass.ResultOperation(status=False, description='sender error')
 
     async def send_except_message(
@@ -155,5 +155,5 @@ class MessageManage:
             return dataclass.ResultOperation()
 
         except Exception as e:
-            print(e)
+            print('! ' + str(e))
             return dataclass.ResultOperation(status=False, description=str(e))

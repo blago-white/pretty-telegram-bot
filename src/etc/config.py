@@ -24,6 +24,11 @@ MAX_LEN_SAMPLING_CITIES = 15
 MEDIUM_LEN_SAMPLING_CITIES = 4
 
 TYPES_MAIN_MESSAGES = (0, 1, 2)
+"""
+0 - profile
+1 - question message
+2 - first message
+"""
 
 LANG_CODES = dict(en_lang_select='en',
                   ru_lang_select='ru')
@@ -43,3 +48,19 @@ DEFAULT_LOGGING_STAGE = 1
 STAGE_BLOCKED_TEXT_MESSAGES = (3, )
 
 DEFAULT_DELAY = 2
+
+NAME_COLUMN_BY_LOGSTAGE = {
+    1: 'age',
+    2: 'city',
+    3: 'sex',
+    4: 'description'
+}
+
+WISHES_COLUMNS = (1, 2, 3)
+
+LOWER_AGE_LIMIT = 10
+UPPER_AGE_LIMIT = 99
+
+MAX_LEN_DESCRIPTION = 350
+
+DBDEBUG = False

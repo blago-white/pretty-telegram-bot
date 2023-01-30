@@ -5,21 +5,6 @@ from src.bot.bin import dataclass
 from src.etc import paths
 
 
-def get_debug_mode() -> dataclass.ResultOperation:
-    """
-
-    function to get debug mode from file
-
-    :returns: result of operation
-
-    """
-
-    with open(paths.dictpaths['debug'], 'r') as file:
-        data = file.read()
-
-    return dataclass.ResultOperation(object=bool(data))
-
-
 def get_setings_db() -> dataclass.ResultOperation:
     """
 

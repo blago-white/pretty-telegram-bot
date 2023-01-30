@@ -4,7 +4,7 @@ from src.etc.config import LANG_STATEMENTS
 
 inline_btn1 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_change'], callback_data='main%change_profile_data')
 inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_creator'], url='https://vk.com/l0ginoff')
-inline_btn3 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_del_acc'], callback_data='main%del_annotations')
+inline_btn3 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_start_find'], callback_data='main%btn_start_find')
 inline_profile_kb_en = InlineKeyboardMarkup(row_width=1)
 inline_profile_kb_en.add(inline_btn1, inline_btn3, inline_btn2)
 
@@ -36,13 +36,31 @@ inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['woman'], callback_data
 inline_kb_set_sex_en = InlineKeyboardMarkup(row_width=2)
 inline_kb_set_sex_en.add(inline_btn1, inline_btn2)
 
-inline_empty_kb = InlineKeyboardMarkup()
+inline_kb_set_sex_by_lang = {'en': inline_kb_set_sex_en}
 
-inline_markup_by_stage = {
-    0: inline_empty_kb,
-    1: inline_empty_kb,
-    2: inline_kb_set_sex_en,
-    3: inline_empty_kb,
-    4: inline_empty_kb,
-    5: inline_empty_kb
-}
+inline_btn1 = InlineKeyboardButton(LANG_STATEMENTS['en']['start_find'], callback_data='find%start')
+inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['do_clairfy'], callback_data='find%clarify')
+inline_btn3 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_back'], callback_data='main%back')
+inline_kb_mode_finding_en = InlineKeyboardMarkup(row_width=1)
+inline_kb_mode_finding_en.add(inline_btn1, inline_btn2, inline_btn3)
+
+inline_kb_mode_finding_by_lang = {'en': inline_kb_mode_finding_en}
+
+inline_btn1 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_change_age'],
+                                   callback_data='change_wish%change_age')
+
+inline_btn2 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_change_city'],
+                                   callback_data='change_wish%change_city')
+
+inline_btn3 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_change_sex'],
+                                   callback_data='change_wish%change_sex')
+
+inline_btn4 = InlineKeyboardButton(LANG_STATEMENTS['en']['btn_back'],
+                                   callback_data='find%back')
+
+inline_kb_change_params_en = InlineKeyboardMarkup(row_width=3)
+inline_kb_change_params_en.add(inline_btn1, inline_btn2, inline_btn3, inline_btn4)
+
+inline_kb_change_params_by_lang = {'en': inline_kb_change_params_en}
+
+inline_empty_kb = InlineKeyboardMarkup()

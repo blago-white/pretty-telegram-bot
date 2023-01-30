@@ -4,8 +4,6 @@ import psycopg2
 from src.bot.bin import dataclass
 from src.bot.bin.jsons import json_writers, json_getters
 
-print(psycopg2.__version__)
-
 
 class Connections:
     __TIME_START_SESSION: int
@@ -119,7 +117,6 @@ class Connections:
 def execute_query(
         connection: psycopg2.connect,
         sqlquery: str):
-
     with connection.cursor() as con:
 
         con.execute(sqlquery)

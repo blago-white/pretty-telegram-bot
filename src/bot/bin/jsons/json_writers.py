@@ -6,22 +6,6 @@ from src.etc import paths
 
 
 @decorators.trying()
-def write_debug_mode(mode: bool) -> dataclass.ResultOperation:
-    """
-
-    :param mode: if true on next initializing database will happen drop all data from _db_scripts
-
-    :returns: Result of operation
-
-    """
-
-    with open(paths.dictpaths['debug'], 'w') as file:
-        file.write(str(mode))
-
-    return dataclass.ResultOperation()
-
-
-@decorators.trying()
 def write_settings_db(**params: dict[str]) -> dataclass.ResultOperation:
     """
 
@@ -67,6 +51,7 @@ if __name__ == '__main__':
 
     with open(paths.dictpaths['templates'], 'w') as f:
         json.dump({1: "SELECT logging, logging_type, logging_stage FROM states WHERE telegram_id = {}",
+                   2: "SELECT age_wish, city_wish, sex_wish FROM info_users WHERE telegram_id = {}",
                    3: "UPDATE states SET logging=False, logging_type=0, logging_stage=0 WHERE telegram_id={};",
                    4: "UPDATE states SET logging=True, logging_type={}, logging_stage={} WHERE telegram_id={};",
                    5: "INSERT INTO photos VALUES ({}, '{}');",
@@ -74,17 +59,15 @@ if __name__ == '__main__':
                    7: "INSERT INTO users VALUES ({}, '{}', '{}', '{}', '{}', 'en');",
                    8: "INSERT INTO states VALUES ({}, {}, {}, {});",
                    9: "INSERT INTO info_users VALUES ({});",
-                   10: "UPDATE info_users SET age={} WHERE telegram_id={};",
-                   11: "UPDATE info_users SET city='{}' WHERE telegram_id={};",
-                   12: "UPDATE info_users SET sex={} WHERE telegram_id={};",
-                   13: "UPDATE info_users SET description='{}' WHERE telegram_id={};",
+                   10: "UPDATE info_users SET {}={} WHERE telegram_id={};",
+                   11: "UPDATE info_users SET age_wish='[{}, {}]'::int4range WHERE telegram_id={};",
                    14: "INSERT INTO main_messages VALUES ({}, {}, {})",
                    15: "DELETE FROM main_messages WHERE telegram_id={} AND message_type={}",
                    16: "SELECT message_id FROM main_messages WHERE telegram_id={} AND message_type={}",
                    17: "SELECT * FROM {};",
                    19: "SELECT * FROM {} WHERE telegram_id = {};",
                    20: "DELETE FROM {} WHERE telegram_id = {};",
-                   21: "UPDATE users SET language='{}' WHERE telegram_id={};",
+                   21: "UPDATE users SET language='{}' WHERE telegram_id={};"
                    }, f)
 
     with open(paths.dictpaths['statements_en'], 'w') as en_statements_file:
@@ -94,7 +77,7 @@ if __name__ == '__main__':
                                    continue_warn='continue registration please:\n{}',
                                    acc_send_warn='your account did not sending try later',
                                    start_warn='send command /start to _bot please',
-                                   help='if you find a bug, please tell me - @VictorMerinov and /restart the bot',
+                                   help='if you find a bug, please tell me - @VictorMerinov',
                                    change_lang_good='language succesfully changed to <b>English</b>',
                                    invalid_t_age='not correct value of age (10 - 99)',
                                    invalid_v_age='age must be integer (11, 12, ..., 99)',
@@ -104,18 +87,19 @@ if __name__ == '__main__':
                                    q_city='wich <b>city</b> wour from?',
                                    q_sex='what your <b>sex</b>?',
                                    q_desc='tell me a little <b>about you</b>',
-                                   q_photo=u'\u2728last one, send me your future profile photo',
+                                   q_photo=u'\u2728 last one, send me your future profile photo',
                                    q_age='how <b>old</b> are you?',
-                                   btn_change=u'\u270Fchange info',
-                                   btn_creator='🤙creator',
-                                   btn_del_acc=u'\u2728find people',
+                                   btn_change=u'\u270F change info',
+                                   btn_creator='🤙 creator',
+                                   btn_start_find='🌐 find people',
                                    btn_en_lang='en🇬🇧',
                                    btn_ru_lang='ru🇷🇺',
-                                   btn_back='📛back',
+                                   btn_back=u'\u2B05 back',
                                    btn_change_photo=u'\u270F photo',
                                    btn_change_age=u'\u270F age',
                                    btn_change_city=u'\u270F city',
                                    btn_change_description=u'\u270F description',
+                                   btn_change_sex=u'\u270F sex',
                                    fatal_err='sorry, there was a problem, please try again later!',
                                    city_sep=', ',
                                    select_lang='<b>select you language</b>',
@@ -123,7 +107,15 @@ if __name__ == '__main__':
                                    q_new_age='enter new age',
                                    q_new_city='enter new city',
                                    q_new_desc='enter new description',
+                                   clarify='🔎 do you want to <b>clarify</b>'
+                                           ' the data of the <b>people</b> you are looking for?',
+                                   do_clairfy=u'\u2699 clarify',
+                                   start_find='🔮 start find',
                                    profile_templ='{name}, {age} {declination}, {city}\n<i>{desc}</i>',
+                                   change_find_params=u'default search parameters:\n\n'
+                                                      u'🌆 city: <code>{}</code>\n'
+                                                      u'\u231B age: from <code>{}</code> to <code>{}</code>\n'
+                                                      u'🧬 sex: <code>{}</code>\n',
                                    man='i\'m man',
                                    woman='i\'m woman',
                                    overflow='...',
@@ -132,5 +124,3 @@ if __name__ == '__main__':
 
                   fp=en_statements_file
                   )
-
-

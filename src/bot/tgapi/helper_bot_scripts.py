@@ -2,8 +2,17 @@ import asyncio
 import aiogram
 from typing import Union
 
+import psycopg2
+
 from src.bot.bin import dataclass
-from src.etc.config import MAX_LEN_SAMPLING_CITIES, LANG_STATEMENTS, MAX_DELAY_TIME_SECONDS, MEDIUM_LEN_SAMPLING_CITIES
+from src.etc.config import (MAX_LEN_SAMPLING_CITIES,
+                            LANG_STATEMENTS,
+                            MAX_DELAY_TIME_SECONDS,
+                            MEDIUM_LEN_SAMPLING_CITIES,
+                            LOWER_AGE_LIMIT,
+                            UPPER_AGE_LIMIT,
+                            MAX_LEN_DESCRIPTION)
+
 from src.bot.db.dbscripts import Database
 from src.bot.module import callbacks
 
@@ -21,6 +30,14 @@ class HelperScripts:
             cities_list = cities_list[:MAX_LEN_SAMPLING_CITIES + 1]
 
         return LANG_STATEMENTS['en']['city_sep'].join(cities_list)
+
+    @staticmethod
+    def convert_sex_type(obj: Union[bool, str]):
+
+        if type(obj) == bool:
+            return 'man' if obj else 'woman'
+
+        return True if 'man' else 'woman'
 
     @staticmethod
     def _search_city(string_idx: int, city: str, cities: dict[str], length_border: int):
@@ -87,6 +104,18 @@ class HelperScripts:
         if 0 < delay < MAX_DELAY_TIME_SECONDS:
             await asyncio.sleep(delay=delay)
 
+    def get_change_params(self, user_id: int, user_lang_code: str):
+        user_data = self.db_scripts.get_user_wishes(ids=user_id)
+
+        age_interval = user_data[0]
+
+        return LANG_STATEMENTS[user_lang_code]['change_find_params'].format(
+            user_data[1],
+            int(age_interval.lower),
+            int(age_interval.upper - 1),
+            self.convert_sex_type(user_data[2])
+        )
+
     def get_similar_cities(self, city: str) -> dataclass.ResultOperation:
         try:
             if not city:
@@ -134,7 +163,7 @@ class HelperScripts:
             try:
                 age = int(message.text)
 
-                if not 10 < age < 99:
+                if not LOWER_AGE_LIMIT <= age <= UPPER_AGE_LIMIT:
                     return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code][
                         'invalid_t_age'])
 
@@ -158,15 +187,9 @@ class HelperScripts:
 
             return dataclass.ResultOperation(status=True, object=LANG_STATEMENTS[user_lang_code]['q_sex'])
 
-        elif logstage == 3:
-            if message.text in ('/man', '/woman'):
-                return dataclass.ResultOperation(status=True, object=LANG_STATEMENTS[user_lang_code]['q_desc'])
-
-            return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code]['invalid_t_sex'])
-
         elif logstage == 4:
 
-            if len(message.text) > 350:
+            if len(message.text) > MAX_LEN_DESCRIPTION:
                 return dataclass.ResultOperation(status=False,
                                                  object=LANG_STATEMENTS[user_lang_code]['invalid_l_desc'].format(
                                                      len(message.text)

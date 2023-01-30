@@ -7,10 +7,16 @@ from src.etc.config import (LIMIT_REGISTRATION_STAGES,
                             TYPES_MAIN_MESSAGES,
                             DEFAULT_LANG,
                             DEFAULT_LOGGING_TYPE,
-                            DEFAULT_LOGGING_STAGE)
+                            DEFAULT_LOGGING_STAGE,
+                            NAME_COLUMN_BY_LOGSTAGE,
+                            WISHES_COLUMNS,
+                            LOWER_AGE_LIMIT,
+                            UPPER_AGE_LIMIT,
+                            DBDEBUG)
 
 
 class DBGetMethods:
+    _database: sqlexecutor.Execute
 
     def get_logging_info(self, ids: int) -> dataclass.ResultOperation:
         response = self._database.complete_transaction(ids, number_temp=1)
@@ -23,7 +29,7 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(object=response.object[0])
 
-    def get_main_message(self, ids, type_message):
+    def get_main_message(self, ids: int, type_message: int):
         if not (ids or type_message):
             return dataclass.ResultOperation(status=False, description='not full args')
 
@@ -54,7 +60,7 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(object=result)
 
-    def get_user_lang_code(self, ids):
+    def get_user_lang_code(self, ids: int):
         lang_response = self.get_user_data_by_table(ids=ids, table_name='users')
 
         if lang_response.object:
@@ -66,7 +72,7 @@ class DBGetMethods:
     def get_user_data_by_table(self, ids: int, table_name: str) -> dataclass.ResultOperation:
         return self._database.complete_transaction(table_name, ids, number_temp=19)
 
-    def get_user_entrys(self, ids):
+    def get_user_entrys(self, ids: int):
         if self.get_user_data_by_table(ids=ids, table_name='users').status:
 
             results = [self.get_user_data_by_table(ids=ids, table_name=name) for name in
@@ -91,8 +97,12 @@ class DBGetMethods:
         else:
             return dataclass.ResultOperation('not ann')
 
+    def get_user_wishes(self, ids: int) -> dataclass.ResultOperation:
+        return self._database.complete_transaction(ids, number_temp=2).object[0]
+
 
 class DBSetMethods:
+    _database: sqlexecutor.Execute
 
     def change_state_logging(self, ids: int, logtype=None, logstage=None, stop_logging: bool = None):
         if stop_logging:
@@ -146,46 +156,53 @@ class DBSetMethods:
 
         type_err_temp = 'not correct type of %s (need %s) given %s'
 
-        if logstage == 1:
+        if logstage in NAME_COLUMN_BY_LOGSTAGE:
 
-            try:
-                self._database.complete_transaction(int(message_text), ids, number_temp=10)
+            processed_text = message_text
 
-            except TypeError:
-                return dataclass.ResultOperation(status=False, description=type_err_temp % ('age', int, type(message_text)))
-
-        elif logstage == 2:
-            try:
-                response = self._database.complete_transaction(str(message_text), ids, number_temp=11)
-
-            except TypeError:
-                return dataclass.ResultOperation(status=False, description=type_err_temp % ('city', str, type(message_text)))
-
-            if not response.status:
-                return dataclass.ResultOperation(status=False, description='_database error')
-
-        elif logstage == 3:
-
-            try:
-                response = self._database.complete_transaction(bool(message_text), ids, number_temp=12)
-
-            except TypeError:
-                return dataclass.ResultOperation(status=False, description=type_err_temp % ('male', bool, type(message_text)))
-
-            if not response.status:
-                return dataclass.ResultOperation(status=False, description='_database error')
-
-        elif logstage == 4:
-
-            try:
+            if type(message_text) == str:
                 processed_text = message_text.replace("'", "''").replace("/", "")
-                response = self._database.complete_transaction(processed_text, ids, number_temp=13)
+                processed_text = "'" + processed_text + "'"
+
+            try:
+                self._database.complete_transaction(NAME_COLUMN_BY_LOGSTAGE[logstage],
+                                                    processed_text,
+                                                    ids,
+                                                    number_temp=10)
 
             except TypeError:
-                return dataclass.ResultOperation(status=False, description=type_err_temp % ('desc', str, type(message_text)))
+                return dataclass.ResultOperation(status=False,
+                                                 description=type_err_temp % ('age', int, type(message_text)))
 
-            if not response.status:
-                return dataclass.ResultOperation(status=False, description='_database error')
+            if logstage in WISHES_COLUMNS:
+                if logstage == 1:
+
+                    start_range = int(message_text) - 5
+                    stop_range = int(message_text) + 5
+
+                    if start_range < LOWER_AGE_LIMIT:
+                        start_range = LOWER_AGE_LIMIT
+
+                    elif stop_range < LOWER_AGE_LIMIT:
+                        stop_range = UPPER_AGE_LIMIT
+
+                    self._database.complete_transaction(start_range,
+                                                        stop_range,
+                                                        ids,
+                                                        number_temp=11)
+
+                    return
+
+                if logstage == 2:
+                    message_text = "'" + message_text + "'"
+
+                if logstage == 3:
+                    message_text = False if message_text else True
+
+                self._database.complete_transaction(NAME_COLUMN_BY_LOGSTAGE[logstage] + '_wish',
+                                                    message_text,
+                                                    ids,
+                                                    number_temp=10)
 
         elif logstage == 5:
 
@@ -193,7 +210,8 @@ class DBSetMethods:
                 response = self.save_photo(ids=ids, file_id=str(message_text), upd=update)
 
             except TypeError:
-                return dataclass.ResultOperation(status=False, description=type_err_temp % ('ph_id', str, type(message_text)))
+                return dataclass.ResultOperation(status=False,
+                                                 description=type_err_temp % ('ph_id', str, type(message_text)))
 
             if not response.status:
                 return dataclass.ResultOperation(status=False, description='save photo error 1')
@@ -275,7 +293,7 @@ class Database(DBGetMethods, DBSetMethods):
         self._database = sqlexecutor.Execute(NameDB=db_settings.object['namedb'],
                                              password=db_settings.object['password'],
                                              user=db_settings.object['user'],
-                                             debug=db_settings.object['debug']
+                                             debug=DBDEBUG
                                              )
 
         if not self._database:
