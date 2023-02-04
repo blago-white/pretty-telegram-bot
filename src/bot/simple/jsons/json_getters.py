@@ -1,8 +1,7 @@
 import json
 
-from src.bot.module import decorators
-from src.bot.bin import dataclass
-from src.etc import paths
+from src.bot.simple import dataclass
+from src.conf import paths
 
 
 def get_setings_db() -> dataclass.ResultOperation:
@@ -35,23 +34,6 @@ def get_token() -> dataclass.ResultOperation:
     return dataclass.ResultOperation(object=result)
 
 
-def get_all_templates() -> dataclass.ResultOperation:
-    """
-
-    get all templates to _db_scripts from a file
-
-    :returns: result of operation [list of string templates]
-
-    """
-
-    path = paths.dictpaths['templates']
-
-    with open(path, 'r') as file:
-        data = json.load(file)
-
-    return dataclass.ResultOperation(object=data)
-
-
 def get_condition(field: str) -> dataclass.ResultOperation:
     """
 
@@ -70,12 +52,5 @@ def get_condition(field: str) -> dataclass.ResultOperation:
 def get_tables():
     with open(paths.dictpaths['tables'], 'r') as file:
         data = json.load(file)
-
-    return dataclass.ResultOperation(object=data)
-
-
-def get_statements():
-    with open(paths.dictpaths['statements_en']) as statements_file:
-        data = json.load(statements_file)
 
     return dataclass.ResultOperation(object=data)

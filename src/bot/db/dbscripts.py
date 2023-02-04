@@ -1,18 +1,9 @@
-from typing import Union
-
-from src.bot.bin import dataclass
-from src.bot.bin.jsons import json_getters
+from src.bot.simple import dataclass
+from src.bot.simple.jsons import json_getters
 from src.bot.db import sqlexecutor
-from src.etc.config import (LIMIT_REGISTRATION_STAGES,
-                            TYPES_MAIN_MESSAGES,
-                            DEFAULT_LANG,
-                            DEFAULT_LOGGING_TYPE,
-                            DEFAULT_LOGGING_STAGE,
-                            NAME_COLUMN_BY_LOGSTAGE,
-                            WISHES_COLUMNS,
-                            LOWER_AGE_LIMIT,
-                            UPPER_AGE_LIMIT,
-                            DBDEBUG)
+from src.conf.config import *
+from src.conf.dbconfig import *
+from src.conf.dbconfig import TABLES, OTHER_TABLES, USER_DATA_TABLES, DBDEBUG
 
 
 class DBGetMethods:
@@ -59,6 +50,13 @@ class DBGetMethods:
             result.update({str.lower(city[0]): f'<b>{city[0]}</b> [{region}]'})
 
         return dataclass.ResultOperation(object=result)
+
+    #  in future
+    def get_user_by_params(self, **params):
+        if params.keys() not in WISHES_COLUMNS_NAME:
+            return
+
+        user_data = self._database.complete_transaction()
 
     def get_user_lang_code(self, ids: int):
         lang_response = self.get_user_data_by_table(ids=ids, table_name='users')
@@ -280,7 +278,7 @@ class DBSetMethods:
 
 
 class Database(DBGetMethods, DBSetMethods):
-    all_cities: dict
+    all_cities: dict[str]
     _database: sqlexecutor.Execute
 
     def __init__(self):

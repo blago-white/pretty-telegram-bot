@@ -1,7 +1,8 @@
 import aiogram
 from aiogram.types import ParseMode
-from src.etc.config import LANG_STATEMENTS
-from src.bot.bin import dataclass
+from src.conf.config import STATEMENTS_BY_LANG, BASE_STATEMENTS
+from src.bot.simple import dataclass
+from src.conf.config import DEFAULT_LANG
 
 __all__ = ['send_reply_message', 'photo_sender', 'sender', 'send_except_message', 'message_scavenger']
 
@@ -100,28 +101,31 @@ class MessageManage:
             self,
             ids: int,
             description: str = None,
+            user_lang_code: str = None,
             markup: aiogram.types.InlineKeyboardMarkup = None,
             parse_mode: aiogram.types.ParseMode = ParseMode.HTML) -> dataclass.ResultOperation:
         """
         :param ids: integer, user id
         :param description: string, default = 'sorry, there was a problem, please try again later!'
+        :param user_lang_code: lang code of user defaul - en
+        :param markup: inline markup
         :param parse_mode: telegram parsemode, default = HTML
 
         :returns: Dataclass.ResultOperation
         """
 
         if description is None:
-            description = LANG_STATEMENTS['en']['fatal_err']
+            description = STATEMENTS_BY_LANG[user_lang_code if user_lang_code else DEFAULT_LANG].fatal_err
 
         if markup:
             sending_response = await self.bot.send_message(ids,
-                                                           LANG_STATEMENTS['en']['exception_templ'].format(description),
+                                                           BASE_STATEMENTS.exception_templ.format(description),
                                                            parse_mode=parse_mode,
                                                            reply_markup=markup)
 
         else:
             sending_response = await self.bot.send_message(ids,
-                                                           LANG_STATEMENTS['en']['exception_templ'].format(description),
+                                                           BASE_STATEMENTS.exception_templ.format(description),
                                                            parse_mode=parse_mode)
 
         return dataclass.ResultOperation(object=sending_response.message_id)

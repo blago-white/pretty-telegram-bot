@@ -1,33 +1,36 @@
 import time
 import psycopg2
 
-from src.bot.bin import dataclass
-from src.bot.bin.jsons import json_writers, json_getters
+from src.bot.simple import dataclass
+from src.bot.simple.jsons import json_writers, json_getters
+from src.bot.db import postgres_execute
+
+from src.conf import dbconfig
 
 
-class Connections:
-    __TIME_START_SESSION: int
+class ConnectionsManagement:
+    _TIME_START_SESSION: int
 
     CONNECTION: psycopg2.connect = None
     NAMEDB: str
 
-    USER_DATA_TABLES: list[str]
-    OTHER_TABLES: list[str]
-    TABLES: list[str]
+    USER_DATA_TABLES = dbconfig.USER_DATA_TABLES
+    OTHER_TABLES = dbconfig.OTHER_TABLES
+    TABLES = dbconfig.TABLES
+
+    """
+
+    :param NameDB: str, name of you database
+    :param kwargs:
+    password: str, posttgres password |
+    user: str, name user postgres |
+    debug: bool, debug mode |
+
+    """
 
     def __init__(self, NameDB: str, **kwargs) -> None:
 
-        """
-
-        :param NameDB: str, name of you database
-        :param kwargs:
-        password: str, posttgres password |
-        user: str, name user postgres |
-        debug: bool, debug mode |
-
-        """
-
-        self.__TIME_START_SESSION = 0
+        self._TIME_START_SESSION = 0
         self.NAMEDB = NameDB
 
         if not kwargs:
@@ -42,32 +45,26 @@ class Connections:
         else:
             self.DEBUG = bool(kwargs['debug'])
 
-        self.start_server(password=kwargs['password'],
-                          user=kwargs['user'])
-
-        data = json_getters.get_tables().object
-
-        self.USER_DATA_TABLES = data['data']['user_data_tables']
-        self.OTHER_TABLES = data['data']['other_tables']
-        self.TABLES = data['data']['tables']
+        self._start_connection(password=kwargs['password'],
+                               user=kwargs['user'])
 
         if json_getters.get_condition('restart').object:
-            self.delete_data_from_db()
+            self._wipe_database_data()
 
             json_writers.write_condition(cond=False)
 
-    def __act_time_before_start(self, rounded: int = 8):
-        if self.__TIME_START_SESSION:
-            return round((time.time() - self.__TIME_START_SESSION), rounded)
+    def _act_time_before_start(self, rounded: int = 8):
+        if self._TIME_START_SESSION:
+            return round((time.time() - self._TIME_START_SESSION), rounded)
 
-    def start_server(self, password: str, user: str):
+    def _start_connection(self, password: str, user: str):
         if not self.CONNECTION:
             try:
                 self.CONNECTION = psycopg2.connect(dbname=self.NAMEDB,
                                                    user=user,
                                                    password=password)
 
-                self.__TIME_START_SESSION = time.time()
+                self._TIME_START_SESSION = time.time()
 
             except Exception as e:
                 return RuntimeError(e)
@@ -75,28 +72,31 @@ class Connections:
             print('Connection successful! ~~~~~~~~~~~')
 
     def execute_query_(self, sqlquery: str) -> dataclass.ResultOperation:
-
         if self.CONNECTION:
-            return execute_query(connection=self.CONNECTION, sqlquery=sqlquery)
+            return dataclass.ResultOperation(object=
+                                             postgres_execute.execute_query(
+                                                postgres_connection=self.CONNECTION,
+                                                sqlquery=sqlquery)
+                                             )
 
     def exit(self):
         if self.CONNECTION:
             if self.DEBUG:
-                self.delete_data_from_db()
+                self._wipe_database_data()
 
             self.CONNECTION.close()
 
-            TimeOut = self.__act_time_before_start(rounded=2)
+            working_time = self._act_time_before_start(rounded=2)
 
-            d = TimeOut // 86400
-            h = (TimeOut - d * 86400) // 3600
-            m = (TimeOut - (d * 86400 + h * 3600)) // 60
-            s = TimeOut % 60
+            d = working_time // 86400
+            h = (working_time - d * 86400) // 3600
+            m = (working_time - (d * 86400 + h * 3600)) // 60
+            s = working_time % 60
 
             print(f'Time session: {int(d)}d. {int(h)}h. {int(m)}m. {s}sec.')
             print('Bye! ~~~~~~~~~~~')
 
-    def delete_data_from_db(self) -> dataclass.ResultOperation:
+    def _wipe_database_data(self) -> dataclass.ResultOperation:
         with self.CONNECTION.cursor() as cursor:
 
             sql = str()
@@ -112,22 +112,3 @@ class Connections:
                 return dataclass.ResultOperation(status=False, description='error with deleting from _db_scripts')
 
         self.CONNECTION.commit()
-
-
-def execute_query(
-        connection: psycopg2.connect,
-        sqlquery: str):
-    with connection.cursor() as con:
-
-        con.execute(sqlquery)
-
-        # except:
-        #     return dataclass.ResultOperation(status=False, description='Error with executing')
-
-        try:
-            data = con.fetchall()
-            return dataclass.ResultOperation(object=data)
-
-        except:
-            connection.commit()
-            return dataclass.ResultOperation()

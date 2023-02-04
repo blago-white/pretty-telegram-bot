@@ -1,19 +1,19 @@
 import aiogram
 
-from src.etc.config import LANG_STATEMENTS, LANG_CODES, DEFAULT_LANG, STAGE_BY_PAYLOAD
-from src.bot.bin import dataclass
+from src.conf.config import STAGE_BY_PAYLOAD, STATEMENTS_BY_LANG
+from src.bot.simple import dataclass
 from src.bot.db import dbscripts
-from src.bot.module import message_manager
-from src.bot.tgapi.helper_bot_scripts import HelperScripts
+from src.bot.telegram.script import message_manager
+from src.bot.telegram.script.helper_bot_scripts import HelperScripts
 from src.bot.module.callback_keyboards import (inline_profile_kb_by_lang,
                                                inline_kb_change_prof_by_lang,
-                                               inline_empty_kb,
                                                inline_kb_set_sex_by_lang,
+                                               inline_empty_kb,
                                                inline_kb_mode_finding_by_lang,
                                                inline_kb_change_params_by_lang)
 
 
-class CallbacksHandler:
+class CallbackHandler:
     db_scripts: dbscripts.Database
     bot: aiogram.Bot
     message_manager_: message_manager.MessageManage
@@ -36,6 +36,14 @@ class CallbacksHandler:
     def unpack(payload_string: str) -> dict:
         return dict(type_request=payload_string.split('%')[0],
                     type_requested_operation=payload_string.split('%')[1])
+
+    @staticmethod
+    def get_inline_keyboard_by_stage(stage: int):
+        if stage == 2:
+            return inline_kb_set_sex_by_lang
+
+        else:
+            return inline_empty_kb
 
     async def process_callback_by_id(
             self,
@@ -77,8 +85,8 @@ class CallbacksHandler:
 
             elif type_requested_operation == 'btn_start_find':
                 response_sending = await self.message_manager_.sender(ids=ids,
-                                                                      description=LANG_STATEMENTS[user_lang_code][
-                                                                          'clarify'],
+                                                                      description=STATEMENTS_BY_LANG[
+                                                                          user_lang_code].clarify,
                                                                       markup=inline_kb_mode_finding_by_lang[
                                                                           user_lang_code]
                                                                       )
@@ -97,8 +105,9 @@ class CallbacksHandler:
                                                          user_id=ids,
                                                          user_lang_code=user_lang_code)
 
-                await self.helper_scripts.delete_requirement_message(message_manager=self.message_manager_,
-                                                                     user_id=ids)
+                await self.helper_scripts.delete_main_message(message_manager=self.message_manager_,
+                                                              user_id=ids,
+                                                              type_message=1)
 
         elif type_request == 'change':
 
@@ -109,26 +118,30 @@ class CallbacksHandler:
 
             if type_requested_operation == 'change_photo':
                 sending_response = await self.message_manager_.sender(ids,
-                                                                      description=LANG_STATEMENTS[
-                                                                          user_lang_code]['q_new_photo']
+                                                                      description=STATEMENTS_BY_LANG[
+                                                                          user_lang_code
+                                                                      ].q_new_photo
                                                                       )
 
             elif type_requested_operation == 'change_age':
                 sending_response = await self.message_manager_.sender(ids,
-                                                                      description=LANG_STATEMENTS[
-                                                                          user_lang_code]['q_new_age']
+                                                                      description=STATEMENTS_BY_LANG[
+                                                                          user_lang_code
+                                                                      ].q_new_age
                                                                       )
 
             elif type_requested_operation == 'change_city':
                 sending_response = await self.message_manager_.sender(ids,
-                                                                      description=LANG_STATEMENTS[
-                                                                          user_lang_code]['q_new_city']
+                                                                      description=STATEMENTS_BY_LANG[
+                                                                          user_lang_code
+                                                                      ].q_new_city
                                                                       )
 
             elif type_requested_operation == 'change_description':
                 sending_response = await self.message_manager_.sender(ids,
-                                                                      description=LANG_STATEMENTS[
-                                                                          user_lang_code]['q_new_desc']
+                                                                      description=STATEMENTS_BY_LANG[
+                                                                          user_lang_code
+                                                                      ].q_new_desc
                                                                       )
 
             elif type_requested_operation == 'back':
@@ -154,13 +167,14 @@ class CallbacksHandler:
                 logstage=stage_logging
             )
 
-            await self.helper_scripts.delete_requirement_message(message_manager=self.message_manager_,
-                                                                 user_id=ids)
+            await self.helper_scripts.delete_main_message(message_manager=self.message_manager_,
+                                                          user_id=ids,
+                                                          type_message=1)
 
             response_sending = await self.message_manager_.sender(ids=ids,
-                                                                  description=LANG_STATEMENTS[
+                                                                  description=STATEMENTS_BY_LANG[
                                                                       user_lang_code
-                                                                  ]['q_desc']
+                                                                  ].q_desc
                                                                   )
 
             self.db_scripts.add_main_message_to_db(ids=ids,
@@ -173,6 +187,7 @@ class CallbacksHandler:
 
         elif type_request == 'find':
             if type_requested_operation == 'start':
+                """"""
                 await self.message_manager_.sender(ids=ids, description='later!')
 
             if type_requested_operation == 'clarify':
@@ -184,9 +199,9 @@ class CallbacksHandler:
                                                    markup=inline_kb_change_params_by_lang[user_lang_code])
 
             if type_requested_operation == 'back':
-                await self.helper_scripts.delete_requirement_message(message_manager=self.message_manager_,
-                                                                     user_id=ids
-                                                                     )
+                await self.helper_scripts.delete_main_message(message_manager=self.message_manager_,
+                                                              user_id=ids,
+                                                              type_message=1)
 
                 await self.process_callback_by_id(payload=self.unpack('main%btn_start_find'),
                                                   ids=ids,
@@ -198,8 +213,9 @@ class CallbacksHandler:
 
                 return
 
-            await self.helper_scripts.delete_requirement_message(message_manager=self.message_manager_,
-                                                                 user_id=ids)
+            await self.helper_scripts.delete_main_message(message_manager=self.message_manager_,
+                                                          user_id=ids,
+                                                          type_message=1)
 
         if sending_response:
             if sending_response.object:

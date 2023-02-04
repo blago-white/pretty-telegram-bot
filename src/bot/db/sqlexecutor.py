@@ -1,11 +1,11 @@
-from src.bot.db.dbconnection import Connections
-from src.bot.bin import dataclass
-from src.bot.bin.jsons import json_getters
+from src.bot.db.dbconnection import ConnectionsManagement
+from src.bot.simple import dataclass
+from src.conf import config
 
 
-class Execute(Connections):
+class Execute(ConnectionsManagement):
 
-    TEMPLATES: dict[str] = json_getters.get_all_templates().object
+    TEMPLATES = config.TEMPLATES
 
     def complete_transaction(self, *args, number_temp: int, template: str = None):
 
@@ -13,7 +13,7 @@ class Execute(Connections):
             return dataclass.ResultOperation(status=False, description='args-error')
 
         if not template:
-            template = self.TEMPLATES[str(number_temp)]
+            template = self.TEMPLATES[number_temp]
             template = template.format(*args)
 
         response = self.execute_query_(sqlquery=template)

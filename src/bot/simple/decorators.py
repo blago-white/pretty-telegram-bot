@@ -1,4 +1,4 @@
-from src.bot.bin import dataclass
+from src.bot.simple import dataclass
 import aiogram
 
 
@@ -22,7 +22,7 @@ def trying(on_exception: str = None):
     return wrapper
 
 
-def unpack_message(handler_func):
+def prehandler(handler_func):
     async def wrapper(*args):
         message: aiogram.types.Message
 

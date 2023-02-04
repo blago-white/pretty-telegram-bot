@@ -1,11 +1,6 @@
-
-import os
-import sys
-
-from src.bot.bin.jsons import json_getters
-from src.bot.bin.jsons import json_writers
+from src.bot.simple.jsons import json_writers, json_getters
 import src.bot.db.dbscripts as dbscripts
-from src.bot.tgapi import aiohandlers
+from src.bot.telegram import mainbot
 
 
 def main():
@@ -13,8 +8,8 @@ def main():
 
     scripts = dbscripts.Database()
 
-    aiohandlers.start_bot(backend_scripts=scripts,
-                          bot_token=json_getters.get_token().object)
+    mainbot.start_bot(db_scripts=scripts,
+                      bot_token=json_getters.get_token().object)
 
     scripts.stop_working()
 

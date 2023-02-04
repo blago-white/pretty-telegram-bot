@@ -2,16 +2,8 @@ import asyncio
 import aiogram
 from typing import Union
 
-import psycopg2
-
-from src.bot.bin import dataclass
-from src.etc.config import (MAX_LEN_SAMPLING_CITIES,
-                            LANG_STATEMENTS,
-                            MAX_DELAY_TIME_SECONDS,
-                            MEDIUM_LEN_SAMPLING_CITIES,
-                            LOWER_AGE_LIMIT,
-                            UPPER_AGE_LIMIT,
-                            MAX_LEN_DESCRIPTION)
+from src.bot.simple import dataclass
+from src.conf.config import *
 
 from src.bot.db.dbscripts import Database
 from src.bot.module import callbacks
@@ -26,10 +18,10 @@ class HelperScripts:
     @staticmethod
     def get_drop_down_cities_list(cities_list: list):
         if len(cities_list) > MAX_LEN_SAMPLING_CITIES:
-            cities_list[MAX_LEN_SAMPLING_CITIES] += LANG_STATEMENTS['en']['overflow']
+            cities_list[MAX_LEN_SAMPLING_CITIES] += BASE_STATEMENTS.overflow
             cities_list = cities_list[:MAX_LEN_SAMPLING_CITIES + 1]
 
-        return LANG_STATEMENTS['en']['city_sep'].join(cities_list)
+        return BASE_STATEMENTS.city_sep.join(cities_list)
 
     @staticmethod
     def convert_sex_type(obj: Union[bool, str]):
@@ -82,7 +74,7 @@ class HelperScripts:
         elif 1 < age % 10 < 5:
             declination = 'года'
 
-        account_text = LANG_STATEMENTS[user_lang_code]['profile_templ'].format(name=name,
+        account_text = STATEMENTS_BY_LANG[user_lang_code].profile_templ.format(name=name,
                                                                                age=age,
                                                                                declination=declination,
                                                                                city=city.capitalize(),
@@ -109,7 +101,7 @@ class HelperScripts:
 
         age_interval = user_data[0]
 
-        return LANG_STATEMENTS[user_lang_code]['change_find_params'].format(
+        return STATEMENTS_BY_LANG[user_lang_code].change_find_params.format(
             user_data[1],
             int(age_interval.lower),
             int(age_interval.upper - 1),
@@ -164,13 +156,13 @@ class HelperScripts:
                 age = int(message.text)
 
                 if not LOWER_AGE_LIMIT <= age <= UPPER_AGE_LIMIT:
-                    return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code][
-                        'invalid_t_age'])
+                    return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[
+                        user_lang_code].invalid_t_age)
 
-                return dataclass.ResultOperation(status=True, object=LANG_STATEMENTS[user_lang_code]['q_city'])
+                return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_city)
 
             except:
-                return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code]['invalid_v_age'])
+                return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_v_age)
 
         elif logstage == 2:
             if str.lower(str(message.text)) not in self.db_scripts.all_cities:
@@ -183,19 +175,19 @@ class HelperScripts:
                                                          cities_list=simular_cities)
                                                      )
 
-                return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code]['invalid_citi'])
+                return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_citi)
 
-            return dataclass.ResultOperation(status=True, object=LANG_STATEMENTS[user_lang_code]['q_sex'])
+            return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_sex)
 
         elif logstage == 4:
 
             if len(message.text) > MAX_LEN_DESCRIPTION:
                 return dataclass.ResultOperation(status=False,
-                                                 object=LANG_STATEMENTS[user_lang_code]['invalid_l_desc'].format(
+                                                 object=STATEMENTS_BY_LANG[user_lang_code].invalid_l_desc.format(
                                                      len(message.text)
                                                  ))
 
-            return dataclass.ResultOperation(status=True, object=LANG_STATEMENTS[user_lang_code]['q_photo'])
+            return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_photo)
 
             # 'last one, send me your future profile photo!'
 
@@ -204,13 +196,13 @@ class HelperScripts:
                 return dataclass.ResultOperation(status=True)
 
             # 'send only photo please'
-            return dataclass.ResultOperation(status=False, object=LANG_STATEMENTS[user_lang_code]['invalid_t_photo'])
+            return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_t_photo)
 
         raise ValueError(logstage)
 
     async def render_profile(self, message_manager, user_id: int, user_lang_code: str):
         user_data: dict = self.db_scripts.get_user_entrys(ids=user_id).object
-        user, photo, first_name = user_data.get('info_users'), user_data.get('photos'), user_data.get('users')
+        user, photo, first_name = user_data.get('users_info'), user_data.get('photos'), user_data.get('users')
         first_name = first_name[1]
         photo = photo[1]
 
@@ -231,8 +223,7 @@ class HelperScripts:
         sending_result = await message_manager.photo_sender(ids=user_id,
                                                             photo=photo,
                                                             description=account_body,
-                                                            keyboard=
-                                                            callbacks.inline_profile_kb_by_lang[
+                                                            keyboard=callbacks.inline_profile_kb_by_lang[
                                                                 user_lang_code
                                                             ]
                                                             )
@@ -247,9 +238,9 @@ class HelperScripts:
 
         return dataclass.ResultOperation()
 
-    async def delete_requirement_message(self, message_manager, user_id: int):
-        message_id = self.db_scripts.get_main_message(ids=user_id, type_message=1).object
+    async def delete_main_message(self, message_manager, user_id: int, type_message: int):
+        message_id = self.db_scripts.get_main_message(ids=user_id, type_message=type_message).object
 
         if message_id:
             await message_manager.message_scavenger(ids=user_id, idmes=message_id)
-            self.db_scripts.del_main_message_from_db(ids=user_id, type_message=1)
+            self.db_scripts.del_main_message_from_db(ids=user_id, type_message=type_message)
