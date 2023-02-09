@@ -1,20 +1,19 @@
-from src.bot.db.dbconnection import ConnectionsManagement
+from src.bot.db.dbconnection import ConnectionsAssistant
 from src.bot.simple import dataclass
 from src.conf import config
 
 
-class Execute(ConnectionsManagement):
+class Execute(ConnectionsAssistant):
 
     TEMPLATES = config.TEMPLATES
 
-    def complete_transaction(self, *args, number_temp: int, template: str = None):
+    def complete_transaction(self, *args, number_temp: int):
 
-        if not template and not number_temp:
+        if not number_temp:
             return dataclass.ResultOperation(status=False, description='args-error')
 
-        if not template:
-            template = self.TEMPLATES[number_temp]
-            template = template.format(*args)
+        template = self.TEMPLATES[number_temp]
+        template = template.format(*args)
 
         response = self.execute_query_(sqlquery=template)
 

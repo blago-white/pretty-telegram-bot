@@ -1,3 +1,5 @@
+import psycopg2.extras
+
 from src.bot.simple import dataclass
 from src.bot.simple.jsons import json_getters
 from src.bot.db import sqlexecutor
@@ -51,13 +53,6 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(object=result)
 
-    #  in future
-    def get_user_by_params(self, **params):
-        if params.keys() not in WISHES_COLUMNS_NAME:
-            return
-
-        user_data = self._database.complete_transaction()
-
     def get_user_lang_code(self, ids: int):
         lang_response = self.get_user_data_by_table(ids=ids, table_name='users')
 
@@ -94,6 +89,14 @@ class DBGetMethods:
 
         else:
             return dataclass.ResultOperation('not ann')
+
+    def get_users_by_params(self,
+                            age_range: psycopg2.extras.NumericRange,
+                            city: str,
+                            sex: bool,
+                            limit_of_users: int = 10):
+
+        data = self._database.complete_transaction(age_range, city, sex, limit_of_users, number_temp=18).object
 
     def get_user_wishes(self, ids: int) -> dataclass.ResultOperation:
         return self._database.complete_transaction(ids, number_temp=2).object[0]
@@ -150,7 +153,12 @@ class DBSetMethods:
 
         return dataclass.ResultOperation()
 
-    def record_user_data_by_stage(self, message_text, ids, logstage, update=False):
+    def record_user_data_by_stage(self,
+                                  message_text: str,
+                                  ids: int,
+                                  logtype: int,
+                                  logstage: int,
+                                  update=False):
 
         type_err_temp = 'not correct type of %s (need %s) given %s'
 
@@ -184,8 +192,9 @@ class DBSetMethods:
                     elif stop_range < LOWER_AGE_LIMIT:
                         stop_range = UPPER_AGE_LIMIT
 
-                    self._database.complete_transaction(start_range,
-                                                        stop_range,
+                    age_range = psycopg2.extras.NumericRange(lower=start_range, upper=stop_range, bounds='[]')
+
+                    self._database.complete_transaction(age_range,
                                                         ids,
                                                         number_temp=11)
 
@@ -220,48 +229,28 @@ class DBSetMethods:
         for dbname in self._database.TABLES:
             self._database.complete_transaction(dbname, ids, number_temp=20)
 
-    def add_user_entry(self, **user_data):
-
-        if len(user_data) < 8:
-            return dataclass.ResultOperation(status=False, description='not all user_data')
-
+    def add_user_entry(self, ids, fname, lname, telegname, date_message):
         try:
-            response1 = self._database.complete_transaction(user_data['ids'],
-                                                            user_data['first_name'],
-                                                            user_data['last_name'],
-                                                            user_data['telegram_name'],
-                                                            user_data['date_message'],
+            response1 = self._database.complete_transaction(ids,
+                                                            fname,
+                                                            lname,
+                                                            telegname,
+                                                            date_message,
                                                             number_temp=7).status
 
-            response2 = self._database.complete_transaction(user_data['ids'],
-                                                            user_data['logging'],
-                                                            user_data['logging_type'],
-                                                            user_data['logging_stage'],
+            response2 = self._database.complete_transaction(ids,
+                                                            True,
+                                                            DEFAULT_LOGGING_TYPE,
+                                                            DEFAULT_LOGGING_STAGE,
                                                             number_temp=8).status
 
-            response3 = self._database.complete_transaction(user_data['ids'], number_temp=9).status
+            response3 = self._database.complete_transaction(ids, number_temp=9).status
 
         except KeyError:
             return dataclass.ResultOperation(status=False, description='not all user_data')
 
         if False in (response1, response2, response3):
             return dataclasses.ResultOperation(status=False, description='DB error')
-
-        return dataclass.ResultOperation()
-
-    def init_user(self, ids, fname, lname, telegname, date_message):
-        response = self.add_user_entry(ids=ids,
-                                       first_name=fname,
-                                       last_name=lname,
-                                       telegram_name=telegname,
-                                       date_message=date_message,
-                                       logging=True,
-                                       logging_type=DEFAULT_LOGGING_TYPE,
-                                       logging_stage=DEFAULT_LOGGING_STAGE
-                                       )
-
-        if not response.status:
-            return dataclass.ResultOperation(status=False, description='_database error')
 
         return dataclass.ResultOperation()
 

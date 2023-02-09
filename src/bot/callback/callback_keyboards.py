@@ -18,7 +18,7 @@ for lang_code in LANG_CODES.values():
                         STATEMENTS_BY_LANG[lang_code].btn_creator)
 
     value_for_buttons = ('main%change_profile_data',
-                         'main%btn_start_find',
+                         'main%start_find',
                          'https://vk.com/l0ginoff')
 
     inline_profile_kb_by_lang[lang_code].add(
@@ -97,9 +97,9 @@ for lang_code in LANG_CODES.values():
                         STATEMENTS_BY_LANG[lang_code].btn_change_sex,
                         STATEMENTS_BY_LANG[lang_code].btn_back)
 
-    value_for_buttons = ('change_wish%change_age',
-                         'change_wish%change_city',
-                         'change_wish%change_sex',
+    value_for_buttons = ('changewish%change_age',
+                         'changewish%change_city',
+                         'changewish%change_sex',
                          'find%back')
 
     inline_kb_change_params_by_lang[lang_code].add(
@@ -110,5 +110,3 @@ for lang_code in LANG_CODES.values():
             for cycle in range(4)
         ]
     )
-
-'en'

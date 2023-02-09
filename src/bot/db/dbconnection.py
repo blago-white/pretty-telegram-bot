@@ -1,5 +1,6 @@
 import time
 import psycopg2
+import psycopg2.extras
 
 from src.bot.simple import dataclass
 from src.bot.simple.jsons import json_writers, json_getters
@@ -8,7 +9,7 @@ from src.bot.db import postgres_execute
 from src.conf import dbconfig
 
 
-class ConnectionsManagement:
+class ConnectionsAssistant:
     _TIME_START_SESSION: int
 
     CONNECTION: psycopg2.connect = None
@@ -24,7 +25,6 @@ class ConnectionsManagement:
     :param kwargs:
     password: str, posttgres password |
     user: str, name user postgres |
-    debug: bool, debug mode |
 
     """
 
@@ -39,19 +39,8 @@ class ConnectionsManagement:
         if 'password' not in kwargs or 'user' not in kwargs:
             raise ValueError('Not correct data in password or user')
 
-        if 'debug' not in kwargs:
-            self.DEBUG = True
-
-        else:
-            self.DEBUG = bool(kwargs['debug'])
-
         self._start_connection(password=kwargs['password'],
                                user=kwargs['user'])
-
-        if json_getters.get_condition('restart').object:
-            self._wipe_database_data()
-
-            json_writers.write_condition(cond=False)
 
     def _act_time_before_start(self, rounded: int = 8):
         if self._TIME_START_SESSION:
@@ -81,8 +70,6 @@ class ConnectionsManagement:
 
     def exit(self):
         if self.CONNECTION:
-            if self.DEBUG:
-                self._wipe_database_data()
 
             self.CONNECTION.close()
 
@@ -95,20 +82,3 @@ class ConnectionsManagement:
 
             print(f'Time session: {int(d)}d. {int(h)}h. {int(m)}m. {s}sec.')
             print('Bye! ~~~~~~~~~~~')
-
-    def _wipe_database_data(self) -> dataclass.ResultOperation:
-        with self.CONNECTION.cursor() as cursor:
-
-            sql = str()
-
-            for table in self.TABLES:
-                sql += 'DELETE FROM %s;' % table
-
-            try:
-                cursor.execute(sql)
-
-            except:
-                json_writers.write_condition(cond=True)
-                return dataclass.ResultOperation(status=False, description='error with deleting from _db_scripts')
-
-        self.CONNECTION.commit()

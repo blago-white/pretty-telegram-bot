@@ -8,14 +8,16 @@ templates = {1: "SELECT logging, logging_type, logging_stage FROM states WHERE t
              8: "INSERT INTO states VALUES ({}, {}, {}, {});",
              9: "INSERT INTO users_info VALUES ({});",
              10: "UPDATE users_info SET {}={} WHERE telegram_id={};",
-             11: "UPDATE users_info SET age_wish='[{}, {}]'::int4range WHERE telegram_id={};",
+             11: "UPDATE users_info SET age_wish='{}'::int4range WHERE telegram_id={};",
              12: "SELECT * FROM users_info WHERE age_wish={} AND city_wish={} AND sex_wish={}",
              13: "INSERT INTO cities VALUES ('{}', '{}', {})",
              14: "INSERT INTO main_messages VALUES ({}, {}, {})",
              15: "DELETE FROM main_messages WHERE telegram_id={} AND message_type={}",
              16: "SELECT message_id FROM main_messages WHERE telegram_id={} AND message_type={}",
              17: "SELECT * FROM {} ORDER BY population DESC;",
+             18: "SELECT * FROM users_info WHERE '{}'::int4range @> age::integer AND city='{}' AND sex={} LIMIT {};",
              19: "SELECT * FROM {} WHERE telegram_id = {};",
              20: "DELETE FROM {} WHERE telegram_id = {};",
-             21: "UPDATE users SET language='{}' WHERE telegram_id={};"
+             21: "UPDATE users SET language='{}' WHERE telegram_id={};",
+             22: "SELECT city FROM cities WHERE city LIKE '{}%' ORDER BY population DESC LIMIT {}"
              }

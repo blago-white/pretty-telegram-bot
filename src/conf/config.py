@@ -4,8 +4,8 @@ global project variables
 
 """
 
-from src.conf.docs.statements import en, ru, general
-from src.conf.docs import sqltemplates
+from src.conf.statements import en, ru, general
+from src.conf import sqltemplates
 
 TEMPLATES = sqltemplates.templates
 
