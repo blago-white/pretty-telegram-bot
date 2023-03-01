@@ -1,35 +1,17 @@
-from src.bot.simple import dataclass
 import aiogram
-
-
-def trying(on_exception: str = None):
-    """
-
-    :param on_exception: string, return if raised exception
-
-    """
-
-    def wrapper(function):
-
-        def wrapper_(*args, **kwargs):
-            try:
-                return function(*args, **kwargs)
-            except Exception as e:
-                return dataclass.ResultOperation(status=False, description=on_exception if on_exception else e)
-
-        return wrapper_
-
-    return wrapper
+from src.bot.db.database_assistant import DatabaseScripts
 
 
 def prehandler(handler_func):
     async def wrapper(*args):
-        message: aiogram.types.Message
-
-        cls_instance, message = args
-        id_user = message.from_user.id
+        message: aiogram.types.Message = args[0]
+        user_id = message.from_user.id
+        # bufferized = self._database_assistant.get_user_data_by_table(
+        #         user_id=user_id,
+        #         table_name=''
+        # )
 
         if message.chat.type == 'private':
-            await handler_func(cls_instance, message, id_user)
+            await handler_func(message, user_id)
 
     return wrapper

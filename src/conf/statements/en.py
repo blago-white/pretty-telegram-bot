@@ -30,6 +30,8 @@ q_age = 'how <b>old</b> are you?'
 
 btn_change = u'\u270F change info'
 
+q_age_range = 'enter new age limits for the people you are looking for, min - 10; max - 99'
+
 btn_creator = '🤙 creator'
 
 btn_start_find = '🌐 find people'
@@ -56,6 +58,8 @@ q_new_city = 'enter new city'
 
 q_new_desc = 'enter new description'
 
+end_chatting = 'you successfully end the chatting'
+
 clarify = '🔎 do you want to <b>clarify</b> the data of the <b>people</b> you are looking for?'
 
 do_clairfy = u'\u2699 clarify'
@@ -72,3 +76,17 @@ change_find_params = u'default search parameters:\n\n' \
 man = 'i\'m man'
 
 woman = 'i\'m woman'
+
+not_spec_users_warn = 'Not a single user was found for the assigned conditions'
+
+not_fast_users_warn = 'No users found'
+
+find_successful = 'The user is found, follow the rules of communication on the Internet,' \
+                  ' to stop the conversation, send me - /end'
+
+find_from_buffer = 'finally, your companion has been found,' \
+                   ' have a good conversation,' \
+                   ' do not forget about the rules of communication on the Internet,' \
+                   ' to stop the conversation - / end'
+
+start_fast_find = u'\u2705 find witout params'

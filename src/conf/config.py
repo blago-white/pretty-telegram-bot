@@ -37,7 +37,15 @@ MAX_LEN_SAMPLING_CITIES = 15
 
 MEDIUM_LEN_SAMPLING_CITIES = 4
 
-TYPES_MAIN_MESSAGES = (0, 1, 2)
+PROFILE_MESSAGE_TYPE = 0
+
+QUESTION_MESSAGE_TYPE = 1
+
+START_MESSAGE_TYPE = 2
+
+TYPES_MAIN_MESSAGES = (PROFILE_MESSAGE_TYPE, QUESTION_MESSAGE_TYPE, START_MESSAGE_TYPE)
+
+MAIN_REGISTRATION_TYPE = (1, )
 
 """
 0 - profile
@@ -50,8 +58,53 @@ LANG_CODES = dict(en_lang_select='en',
 
 STAGE_BY_PAYLOAD = dict(change_photo=5,
                         change_age=1,
+                        change_sex=3,
                         change_city=2,
                         change_description=4)
+
+QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING = {
+    'change_age': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_age_range,
+        'en': STATEMENTS_BY_LANG['en'].q_age_range
+    },
+
+    'change_city': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_new_city,
+        'en': STATEMENTS_BY_LANG['en'].q_new_city
+    },
+
+    'change_sex': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_sex,
+        'en': STATEMENTS_BY_LANG['en'].q_sex
+    },
+}
+
+QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD = {
+    'change_photo': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_new_photo,
+        'en': STATEMENTS_BY_LANG['en'].q_new_photo
+    },
+
+    'change_age': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_new_age,
+        'en': STATEMENTS_BY_LANG['en'].q_new_age
+    },
+
+    'change_city': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_new_city,
+        'en': STATEMENTS_BY_LANG['en'].q_new_city
+    },
+
+    'change_sex': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_sex,
+        'en': STATEMENTS_BY_LANG['en'].q_sex
+    },
+
+    'change_description': {
+        'ru': STATEMENTS_BY_LANG['ru'].q_new_desc,
+        'en': STATEMENTS_BY_LANG['en'].q_new_desc
+    }
+}
 
 DEFAULT_LANG = 'en'
 

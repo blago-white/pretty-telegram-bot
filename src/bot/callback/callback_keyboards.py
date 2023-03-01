@@ -7,10 +7,11 @@ inline_kb_change_prof_by_lang = dict()
 inline_kb_set_sex_by_lang = dict()
 inline_kb_change_params_by_lang = dict()
 inline_kb_mode_finding_by_lang = dict()
-
-inline_empty_kb = InlineKeyboardMarkup()
+inline_empty_kb = dict()
 
 for lang_code in LANG_CODES.values():
+
+    inline_empty_kb.update({lang_code: InlineKeyboardMarkup(row_width=1)})
 
     inline_profile_kb_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=1)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].btn_change,
@@ -26,7 +27,7 @@ for lang_code in LANG_CODES.values():
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
         )
-            for cycle in range(2)
+            for cycle in range(len(value_for_buttons)-1)
         ]
     )
 
@@ -53,7 +54,7 @@ for lang_code in LANG_CODES.values():
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
         )
-            for cycle in range(5)
+            for cycle in range(len(value_for_buttons))
         ]
     )
 
@@ -69,16 +70,18 @@ for lang_code in LANG_CODES.values():
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
         )
-            for cycle in range(2)
+            for cycle in range(len(value_for_buttons))
         ]
     )
 
     inline_kb_mode_finding_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=1)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].start_find,
+                        STATEMENTS_BY_LANG[lang_code].start_fast_find,
                         STATEMENTS_BY_LANG[lang_code].do_clairfy,
                         STATEMENTS_BY_LANG[lang_code].btn_back)
 
-    value_for_buttons = ('find%start',
+    value_for_buttons = ('find%start&spec',
+                         'find%start&fast',
                          'find%clarify',
                          'main%back')
 
@@ -87,7 +90,7 @@ for lang_code in LANG_CODES.values():
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
         )
-            for cycle in range(3)
+            for cycle in range(len(value_for_buttons))
         ]
     )
 
@@ -107,6 +110,6 @@ for lang_code in LANG_CODES.values():
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
         )
-            for cycle in range(4)
+            for cycle in range(len(value_for_buttons))
         ]
     )

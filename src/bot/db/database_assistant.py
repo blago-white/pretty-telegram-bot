@@ -1,47 +1,80 @@
+import datetime
+
 import psycopg2.extras
+from typing import Union
 
 from src.bot.simple import dataclass
 from src.bot.simple.jsons import json_getters
-from src.bot.db import sqlexecutor
+from src.bot.db import sql_placeholder
+from src.bot.db import sql_query_executor
+from src.bot.db import database_connection
 from src.conf.config import *
 from src.conf.dbconfig import *
-from src.conf.dbconfig import TABLES, OTHER_TABLES, USER_DATA_TABLES, DBDEBUG
+
+
+class Condition:
+    ...
+
+
+class Data:
+    ...
+
+
+class ID:
+    ...
 
 
 class DBGetMethods:
-    _database: sqlexecutor.Execute
+    _executor: sql_query_executor.Excecutor
 
-    def get_logging_info(self, ids: int) -> dataclass.ResultOperation:
-        response = self._database.complete_transaction(ids, number_temp=1)
+    def get_logging_info(self, user_id: int) -> dataclass.ResultOperation:
+        response = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=1))
 
-        if not response.status:
+        if type(response) is BaseException:
             return dataclass.ResultOperation(False, 'database error')
 
-        if not len(response.object):
+        if not len(response):
             return dataclass.ResultOperation(description='not info')
 
-        return dataclass.ResultOperation(object=response.object[0])
+        return dataclass.ResultOperation(object=response[0])
 
-    def get_main_message(self, ids: int, type_message: int):
-        if not (ids or type_message):
+    def get_chatting_condition(self, user_id: int) -> Union[bool, BaseException]:
+
+        """
+        :param user_id: telegram id of current user
+        :return: condition of chatting user or baseexception
+        """
+
+        data = self._executor.execute_query(
+            sql_placeholder.fill_sql_template(user_id, number_temp=23)
+        )
+
+        return dataclass.ResultOperation(status=False if type(data) is BaseException else True,
+                                         object=data if type(data) is BaseException else data[0][0])
+
+    def get_main_message(self, user_id: int, type_message: int):
+        if not (user_id or type_message):
             return dataclass.ResultOperation(status=False, description='not full args')
 
-        id_msg = self._database.complete_transaction(ids, type_message, number_temp=16)
+        id_msg = self._executor.execute_query(
+            sql_placeholder.fill_sql_template(user_id, type_message, number_temp=16))
 
-        if not id_msg.object:
+        if type(id_msg) is BaseException:
+            return dataclass.ResultOperation(status=False, object=id_msg)
+
+        if not id_msg:
             return dataclass.ResultOperation(status=True, description='mes not found')
 
-        return dataclass.ResultOperation(object=int(id_msg.object[0][0]))
+        return dataclass.ResultOperation(object=int(id_msg[0][0]))
 
-    def _get_cities(self):
-
+    def _get_cities(self) -> dataclass.ResultOperation:
         result = {}
-        response = self._database.complete_transaction('cities', number_temp=17)
+        response = self._executor.execute_query(sql_placeholder.fill_sql_template(number_temp=17))
 
-        if not response.status:
+        if type(response) is BaseException:
             return dataclass.ResultOperation(status=False, description='database error')
 
-        for city in response.object:
+        for city in response:
             region = city[1]
             region = region.replace('область',
                                     'обл.').replace('Республика',
@@ -53,26 +86,31 @@ class DBGetMethods:
 
         return dataclass.ResultOperation(object=result)
 
-    def get_user_lang_code(self, ids: int):
-        lang_response = self.get_user_data_by_table(ids=ids, table_name='users')
-
-        if lang_response.object:
+    def get_user_lang_code(self, user_id: int) -> str:
+        lang_response = self.get_user_data_by_table(user_id=user_id, table_name='users')
+        print(lang_response)
+        if lang_response.status and lang_response.object:
             if lang_response.object[-1][-1]:
                 return lang_response.object[-1][-1]
 
         return DEFAULT_LANG
 
-    def get_user_data_by_table(self, ids: int, table_name: str) -> dataclass.ResultOperation:
-        return self._database.complete_transaction(table_name, ids, number_temp=19)
+    def get_user_data_by_table(self, user_id: int, table_name: str) -> dataclass.ResultOperation:
+        result = self._executor.execute_query(sql_placeholder.fill_sql_template(table_name, user_id, number_temp=19))
 
-    def get_user_entrys(self, ids: int):
-        if self.get_user_data_by_table(ids=ids, table_name='users').status:
+        return dataclass.ResultOperation(
+            status=True if type(result) is not BaseException else False,
+            object=result
+        )
 
-            results = [self.get_user_data_by_table(ids=ids, table_name=name) for name in
-                       self._database.USER_DATA_TABLES]
+    def get_user_entrys(self, user_id: int):
+        if self.get_user_data_by_table(user_id=user_id, table_name='users') is not BaseException:
+
+            results = [self.get_user_data_by_table(user_id=user_id, table_name=name) for name in
+                       USER_DATA_TABLES]
 
             for r in results:
-                if not r.status:
+                if type(r) is BaseException:
                     return dataclass.ResultOperation(status=False, description='database error')
 
             results = [result.object for result in results]
@@ -82,7 +120,7 @@ class DBGetMethods:
                     results[idx] = results[idx][0]
 
             result = {}
-            for idx, table_name in enumerate(self._database.USER_DATA_TABLES):
+            for idx, table_name in enumerate(USER_DATA_TABLES):
                 result.update({table_name: results[idx]})
 
             return dataclass.ResultOperation(object=result, description='ann have')
@@ -90,185 +128,185 @@ class DBGetMethods:
         else:
             return dataclass.ResultOperation('not ann')
 
-    def get_users_by_params(self,
-                            age_range: psycopg2.extras.NumericRange,
-                            city: str,
-                            sex: bool,
-                            limit_of_users: int = 10):
+    def get_users_ids_by_params(
+            self,
+            user_id: int,
+            age_range: psycopg2.extras.NumericRange = None,
+            city: str = None,
+            sex: bool = None):
 
-        data = self._database.complete_transaction(age_range, city, sex, limit_of_users, number_temp=18).object
+        if age_range and city and sex and user_id:
+            result = self._executor.execute_query(sql_placeholder.fill_sql_template(
+                age_range, city, sex, user_id, number_temp=18
+            ))
 
-    def get_user_wishes(self, ids: int) -> dataclass.ResultOperation:
-        return self._database.complete_transaction(ids, number_temp=2).object[0]
+        else:
+            result = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=25))
+
+        return dataclass.ResultOperation(
+            status=True if type(result) is not BaseException else False,
+            object=result[0][0]
+        )
+
+    def get_user_buffer_status(self, user_id: int):
+
+        from_bufer_data = self._executor.execute_query(sqlquery=sql_placeholder.fill_sql_template(
+            'users_searching_buffer',
+            user_id,
+            number_temp=19))
+
+        return dataclass.ResultOperation(
+            status=True,
+            object=True if from_bufer_data else False)
+
+    def get_user_wishes(self, user_id: int) -> dataclass.ResultOperation:
+        result = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=2))[0]
+        return dataclass.ResultOperation(
+            status=True if type(result) is not BaseException else False,
+            object=result
+        )
 
 
 class DBSetMethods:
-    _database: sqlexecutor.Execute
+    _executor: sql_query_executor.Excecutor
 
-    def change_state_logging(self, ids: int, logtype=None, logstage=None, stop_logging: bool = None):
+    def change_state_logging(self, user_id: int, logtype=None, logstage=None, stop_logging: bool = None):
         if stop_logging:
-            response = self._database.complete_transaction(ids, number_temp=3)
-            if not response.status:
-                return dataclass.ResultOperation(status=False, description='_database error 1')
+            response = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
+            if type(response) is BaseException:
+                return dataclass.ResultOperation(status=False, description='_postgre_conn error 1')
 
             return dataclass.ResultOperation()
 
         if logtype == 2:
-            response = self._database.complete_transaction(logtype, logstage, ids, number_temp=4)
+            response = self._executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id,
+                                                                                      number_temp=4))
 
-            if not response.status:
-                return dataclass.ResultOperation(False, '_database error 2')
+            if type(response) is BaseException:
+                return dataclass.ResultOperation(False, '_postgre_conn error 2')
 
             return dataclass.ResultOperation()
 
         if logstage >= LIMIT_REGISTRATION_STAGES:
-            response = self._database.complete_transaction(ids, number_temp=3)
+            response = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
 
         else:
-            response = self._database.complete_transaction(logtype, logstage, ids, number_temp=4)
+            response = self._executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id,
+                                                                                      number_temp=4))
 
-        if not response.status:
-            dataclass.ResultOperation(status=False, description='_database error 3')
+        if type(response) is BaseException:
+            dataclass.ResultOperation(status=False, description='_postgre_conn error 3')
 
         return dataclass.ResultOperation()
 
-    def change_user_lang(self, ids: int, lang_code: str):
-        self._database.complete_transaction(lang_code, ids, number_temp=21)
+    def change_chatting_condition(self, user_id: int, new_condition: bool) -> None:
+        self._executor.execute_query(
+            sql_placeholder.fill_sql_template(bool(new_condition), int(user_id), number_temp=24)
+        )
 
-    def save_photo(self, ids: int, file_id, upd=False):
+    def change_user_lang(self, user_id: int, lang_code: str):
+        self._executor.execute_query(sql_placeholder.fill_sql_template(lang_code, user_id, number_temp=21))
+
+    def save_photo(self, user_id: int, file_id, upd=False):
         if not upd:
-            response = self._database.complete_transaction(ids, file_id, number_temp=5)
+            response = self._executor.execute_query(
+                sql_placeholder.fill_sql_template(user_id, file_id, number_temp=5))
 
         else:
-            response = self._database.complete_transaction(file_id, ids, number_temp=6)
+            response = self._executor.execute_query(
+                sql_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
 
         return dataclass.ResultOperation(object=response)
 
-    def add_main_message_to_db(self, ids: int, id_message: int, type_message: int):
+    def add_main_message_to_db(self, user_id: int, id_message: int, type_message: int):
 
-        if not (ids or id_message or type_message) or type_message not in TYPES_MAIN_MESSAGES:
+        if not (user_id or id_message or type_message) or type_message not in TYPES_MAIN_MESSAGES:
             return dataclass.ResultOperation(status=False, description='args')
 
-        self._database.complete_transaction(ids, id_message, int(type_message), number_temp=14)
+        self._executor.execute_query(sql_placeholder.fill_sql_template(user_id,
+                                                                       id_message,
+                                                                       int(type_message),
+                                                                       number_temp=14))
 
         return dataclass.ResultOperation()
 
-    def record_user_data_by_stage(self,
-                                  message_text: str,
-                                  ids: int,
-                                  logtype: int,
-                                  logstage: int,
-                                  update=False):
+    def record_user_param(self, user_id: int, name: str, value: Union[str, int, bool]):
 
-        type_err_temp = 'not correct type of %s (need %s) given %s'
-
-        if logstage in NAME_COLUMN_BY_LOGSTAGE:
-
-            processed_text = message_text
-
-            if type(message_text) == str:
-                processed_text = message_text.replace("'", "''").replace("/", "")
-                processed_text = "'" + processed_text + "'"
-
-            try:
-                self._database.complete_transaction(NAME_COLUMN_BY_LOGSTAGE[logstage],
-                                                    processed_text,
-                                                    ids,
-                                                    number_temp=10)
-
-            except TypeError:
-                return dataclass.ResultOperation(status=False,
-                                                 description=type_err_temp % ('age', int, type(message_text)))
-
-            if logstage in WISHES_COLUMNS:
-                if logstage == 1:
-
-                    start_range = int(message_text) - 5
-                    stop_range = int(message_text) + 5
-
-                    if start_range < LOWER_AGE_LIMIT:
-                        start_range = LOWER_AGE_LIMIT
-
-                    elif stop_range < LOWER_AGE_LIMIT:
-                        stop_range = UPPER_AGE_LIMIT
-
-                    age_range = psycopg2.extras.NumericRange(lower=start_range, upper=stop_range, bounds='[]')
-
-                    self._database.complete_transaction(age_range,
-                                                        ids,
-                                                        number_temp=11)
-
-                    return
-
-                if logstage == 2:
-                    message_text = "'" + message_text + "'"
-
-                if logstage == 3:
-                    message_text = False if message_text else True
-
-                self._database.complete_transaction(NAME_COLUMN_BY_LOGSTAGE[logstage] + '_wish',
-                                                    message_text,
-                                                    ids,
-                                                    number_temp=10)
-
-        elif logstage == 5:
-
-            try:
-                response = self.save_photo(ids=ids, file_id=str(message_text), upd=update)
-
-            except TypeError:
-                return dataclass.ResultOperation(status=False,
-                                                 description=type_err_temp % ('ph_id', str, type(message_text)))
-
-            if not response.status:
-                return dataclass.ResultOperation(status=False, description='save photo error 1')
-
-        return dataclass.ResultOperation()
-
-    def del_user_annotations(self, ids):
-        for dbname in self._database.TABLES:
-            self._database.complete_transaction(dbname, ids, number_temp=20)
-
-    def add_user_entry(self, ids, fname, lname, telegname, date_message):
         try:
-            response1 = self._database.complete_transaction(ids,
-                                                            fname,
-                                                            lname,
-                                                            telegname,
-                                                            date_message,
-                                                            number_temp=7).status
+            response = self._executor.execute_query(
+                sqlquery=sql_placeholder.fill_sql_template(name, value, user_id, number_temp=10)
+            )
 
-            response2 = self._database.complete_transaction(ids,
-                                                            True,
-                                                            DEFAULT_LOGGING_TYPE,
-                                                            DEFAULT_LOGGING_STAGE,
-                                                            number_temp=8).status
+            return dataclass.ResultOperation(
+                status=True if type(response) is not BaseException else False
+            )
 
-            response3 = self._database.complete_transaction(ids, number_temp=9).status
+        except TypeError:
+            return dataclass.ResultOperation(status=False,
+                                             description='Not correct datatype')
+
+    def del_user_annotations(self, user_id):
+        for dbname in TABLES:
+            self._executor.execute_query(sql_placeholder.fill_sql_template(dbname, user_id, number_temp=20))
+
+    def add_user_entry(self, user_id, fname, lname, telegname, date_message):
+        try:
+            response1 = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id,
+                                                                                       fname,
+                                                                                       lname,
+                                                                                       telegname,
+                                                                                       date_message,
+                                                                                       number_temp=7))
+
+            response2 = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id,
+                                                                                       True,
+                                                                                       DEFAULT_LOGGING_TYPE,
+                                                                                       DEFAULT_LOGGING_STAGE,
+                                                                                       False,
+                                                                                       number_temp=8))
+
+            response3 = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=9))
 
         except KeyError:
             return dataclass.ResultOperation(status=False, description='not all user_data')
 
-        if False in (response1, response2, response3):
+        if BaseException in (response1, response2, response3):
             return dataclasses.ResultOperation(status=False, description='DB error')
 
         return dataclass.ResultOperation()
 
-    def del_main_message_from_db(self, ids, type_message):
-        if not (ids or type_message):
+    def del_main_message_from_db(self, user_id, type_message):
+        if not (user_id or type_message):
             return dataclass.ResultOperation(status=False, description='not full args')
 
-        response = self._database.complete_transaction(ids, type_message, number_temp=15)
+        response = self._executor.execute_query(
+            sql_placeholder.fill_sql_template(user_id, type_message, number_temp=15)
+        )
 
-        if not response.status:
+        if type(response) is BaseException:
             return dataclass.ResultOperation(status=False, description='deleting error')
 
         return dataclass.ResultOperation()
 
+    def del_user_from_buffer(self, user_id: int):
+        self._executor.execute_query(
+            sqlquery=sql_placeholder.fill_sql_template(user_id, number_temp=26)
+        )
 
-class Database(DBGetMethods, DBSetMethods):
+    def add_user_to_buffer(self, user_id: int, date_message: datetime.datetime, specified_search: bool):
+        self._executor.execute_query(
+            sqlquery=sql_placeholder.fill_sql_template(
+                user_id,
+                date_message,
+                specified_search,
+                number_temp=27)
+        )
+
+
+class DatabaseScripts(DBGetMethods, DBSetMethods):
     all_cities: dict[str]
-    _database: sqlexecutor.Execute
+    _executor: sql_query_executor.Excecutor
+    _postgre_conn: database_connection
 
     def __init__(self):
 
@@ -277,20 +315,22 @@ class Database(DBGetMethods, DBSetMethods):
         if not db_settings.status:
             raise RuntimeError('json getting error')
 
-        self._database = sqlexecutor.Execute(NameDB=db_settings.object['namedb'],
-                                             password=db_settings.object['password'],
-                                             user=db_settings.object['user'],
-                                             debug=DBDEBUG
-                                             )
+        self._postgre_conn = database_connection.PostgreConnection(nameDB=db_settings.object['namedb'],
+                                                                   password=db_settings.object['password'],
+                                                                   user=db_settings.object['user'])
 
-        if not self._database:
+        self._executor = sql_query_executor.Excecutor(connection=self._postgre_conn.CONNECTION)
+
+        if not self._executor or not self._postgre_conn:
             raise ConnectionError('error with initializing database')
 
-        self.all_cities = self._get_cities().object
+        self.all_cities = self._get_cities()
 
-        if not self.all_cities:
+        if not self.all_cities.status:
             raise RuntimeError('error with database (_get_cities)')
 
-    def stop_working(self):
-        if self._database:
-            self._database.exit()
+        self.all_cities = self.all_cities.object
+
+    def stop(self) -> None:
+        if self._postgre_conn:
+            self._postgre_conn.exit()

@@ -32,25 +32,3 @@ def get_token() -> dataclass.ResultOperation:
         result = token_file.readline()
 
     return dataclass.ResultOperation(object=result)
-
-
-def get_condition(field: str) -> dataclass.ResultOperation:
-    """
-
-    get restarting _db_scripts status
-
-    :returns: result of operation
-
-    """
-
-    with open(paths.dictpaths['restore'], 'r') as file:
-        data = json.load(file)
-
-    return dataclass.ResultOperation(object=data[field])
-
-
-def get_tables():
-    with open(paths.dictpaths['tables'], 'r') as file:
-        data = json.load(file)
-
-    return dataclass.ResultOperation(object=data)
