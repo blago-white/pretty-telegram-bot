@@ -1,19 +1,19 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from src.conf.config import STATEMENTS_BY_LANG
-from src.conf.config import LANG_CODES
+from src.conf.pbconfig import STATEMENTS_BY_LANG
+from src.conf.pbconfig import LANG_CODES
 
-inline_profile_kb_by_lang = dict()
-inline_kb_change_prof_by_lang = dict()
-inline_kb_set_sex_by_lang = dict()
-inline_kb_change_params_by_lang = dict()
-inline_kb_mode_finding_by_lang = dict()
-inline_empty_kb = dict()
+INLINE_PROFILE_KB = dict()
+INLINE_CHANGE_PROF_DATA_KB = dict()
+INLINE_SEX_KB = dict()
+INLINE_CHANGE_PARAMS_FIND_KB = dict()
+INLINE_MODE_FINDING_KB = dict()
+INLINE_EMPTY_KB = dict()
 
 for lang_code in LANG_CODES.values():
 
-    inline_empty_kb.update({lang_code: InlineKeyboardMarkup(row_width=1)})
+    INLINE_EMPTY_KB.update({lang_code: InlineKeyboardMarkup(row_width=1)})
 
-    inline_profile_kb_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=1)})
+    INLINE_PROFILE_KB.update({lang_code: InlineKeyboardMarkup(row_width=1)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].btn_change,
                         STATEMENTS_BY_LANG[lang_code].btn_start_find,
                         STATEMENTS_BY_LANG[lang_code].btn_creator)
@@ -22,7 +22,7 @@ for lang_code in LANG_CODES.values():
                          'main%start_find',
                          'https://vk.com/l0ginoff')
 
-    inline_profile_kb_by_lang[lang_code].add(
+    INLINE_PROFILE_KB[lang_code].add(
         *[InlineKeyboardButton(
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
@@ -31,12 +31,12 @@ for lang_code in LANG_CODES.values():
         ]
     )
 
-    inline_profile_kb_by_lang[lang_code].add(InlineKeyboardButton(
+    INLINE_PROFILE_KB[lang_code].add(InlineKeyboardButton(
         text_for_buttons[-1],
         url=value_for_buttons[-1])
     )
 
-    inline_kb_change_prof_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=2)})
+    INLINE_CHANGE_PROF_DATA_KB.update({lang_code: InlineKeyboardMarkup(row_width=2)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].btn_change_photo,
                         STATEMENTS_BY_LANG[lang_code].btn_change_age,
                         STATEMENTS_BY_LANG[lang_code].btn_change_city,
@@ -49,7 +49,7 @@ for lang_code in LANG_CODES.values():
                          'change%change_description',
                          'change%back')
 
-    inline_kb_change_prof_by_lang[lang_code].add(
+    INLINE_CHANGE_PROF_DATA_KB[lang_code].add(
         *[InlineKeyboardButton(
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
@@ -58,14 +58,14 @@ for lang_code in LANG_CODES.values():
         ]
     )
 
-    inline_kb_set_sex_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=2)})
+    INLINE_SEX_KB.update({lang_code: InlineKeyboardMarkup(row_width=2)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].man,
                         STATEMENTS_BY_LANG[lang_code].woman)
 
     value_for_buttons = ('sex%man',
                          'sex%woman')
 
-    inline_kb_set_sex_by_lang[lang_code].add(
+    INLINE_SEX_KB[lang_code].add(
         *[InlineKeyboardButton(
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
@@ -74,7 +74,7 @@ for lang_code in LANG_CODES.values():
         ]
     )
 
-    inline_kb_mode_finding_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=1)})
+    INLINE_MODE_FINDING_KB.update({lang_code: InlineKeyboardMarkup(row_width=1)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].start_find,
                         STATEMENTS_BY_LANG[lang_code].start_fast_find,
                         STATEMENTS_BY_LANG[lang_code].do_clairfy,
@@ -85,7 +85,7 @@ for lang_code in LANG_CODES.values():
                          'find%clarify',
                          'main%back')
 
-    inline_kb_mode_finding_by_lang[lang_code].add(
+    INLINE_MODE_FINDING_KB[lang_code].add(
         *[InlineKeyboardButton(
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]
@@ -94,7 +94,7 @@ for lang_code in LANG_CODES.values():
         ]
     )
 
-    inline_kb_change_params_by_lang.update({lang_code: InlineKeyboardMarkup(row_width=3)})
+    INLINE_CHANGE_PARAMS_FIND_KB.update({lang_code: InlineKeyboardMarkup(row_width=3)})
     text_for_buttons = (STATEMENTS_BY_LANG[lang_code].btn_change_age,
                         STATEMENTS_BY_LANG[lang_code].btn_change_city,
                         STATEMENTS_BY_LANG[lang_code].btn_change_sex,
@@ -105,7 +105,7 @@ for lang_code in LANG_CODES.values():
                          'changewish%change_sex',
                          'find%back')
 
-    inline_kb_change_params_by_lang[lang_code].add(
+    INLINE_CHANGE_PARAMS_FIND_KB[lang_code].add(
         *[InlineKeyboardButton(
             text_for_buttons[cycle],
             callback_data=value_for_buttons[cycle]

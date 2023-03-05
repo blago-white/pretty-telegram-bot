@@ -1,8 +1,8 @@
-import psycopg2
 from typing import Union
 
 
 class Excecutor:
+
     def __init__(self, connection):
         self.postgres_connection = connection
 

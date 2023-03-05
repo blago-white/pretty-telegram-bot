@@ -7,7 +7,7 @@ paths to your text-docs
 
 """
 
-path = '\\'.join(os.path.abspath(__file__).split('\\')[:-3])
+path = '\\'.join(os.path.abspath(__file__).split('\\')[:-4])
 
 dictpaths = {
     'dbconfig': f"{path}\\dbsettings.txt",

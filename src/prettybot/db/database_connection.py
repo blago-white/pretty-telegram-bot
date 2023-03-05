@@ -1,11 +1,6 @@
 import time
 import psycopg2
 
-from src.bot.simple import dataclass
-from src.bot.simple.jsons import json_getters
-
-from src.conf import dbconfig
-
 
 class PostgreConnection:
     _TIME_START_SESSION: int

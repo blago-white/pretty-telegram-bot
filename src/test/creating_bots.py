@@ -2,7 +2,7 @@ import datetime
 import random
 import time
 
-from src.bot.db import sqlexecutor
+from src.prettybot.db import sql_placeholder
 import asyncio
 
 from string import ascii_letters
@@ -367,6 +367,10 @@ lastnames = [
 cyrillic = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЮЭЯ'
 
 
+def db_task(*args, number_temp, conn):
+    conn.execute_query()
+
+
 def shuffle_(dict_: dict):
     length = len(dict_)
     keys = list(dict_.keys())
@@ -380,30 +384,75 @@ def shuffle_(dict_: dict):
         len_shuffeled += 1
 
 
+async def full_fill(cities, profile_info, result_user_names, idx, conn):
+    random_letter = random.choice(cyrillic)
+    index = random.randint(0, len(cities))
+
+    try:
+        random_city = cities[index][0]
+    except:
+        random_city = 'Белгород'
+
+    db_task(
+        profile_info[0],
+        result_user_names[idx][0],
+        result_user_names[idx][1],
+        ''.join([random.choice(list(ascii_letters)) for _ in range(8)]),
+        datetime.datetime.now(),
+        number_temp=7,
+        conn=conn
+    )
+
+    db_task(profile_info[0], number_temp=9, conn=conn)
+
+    db_task('age', profile_info[1], profile_info[0], number_temp=10,
+            conn=conn)
+
+    db_task('city',
+            f"'{random_city}'",
+            profile_info[0],
+            number_temp=10,
+            conn=conn)
+
+    db_task('sex',
+            True if result_user_names[idx][-1] == 'm' else False,
+            profile_info[0],
+            number_temp=10,
+            conn=conn)
+
+    db_task('description',
+            f"'{profile_info[-1]}'",
+            profile_info[0],
+            number_temp=10,
+            conn=conn)
+
+
 async def main():
     global names
 
-    conn = sqlexecutor.Execute(...)
+    conn = sqlexecutor.DatabaseExecutor(
+        NameDB='messangerdb',
+        password='270407020104$sPg@POST-kont_~lp',
+        user='postgres'
+    )
 
     shuffle_(names)
     keys = list(names.keys())
-
     result_user_names = list()
     result_profiles = list()
     tgid = 0
 
-    for profile_info in range(1000):
+    cities = conn.execute_query('SELECT * FROM cities ORDER BY population DESC;')
+
+    for profile_info in range(50_000):
         k = random.randint(0, 103 - 1)
         random_name = keys[k]
         result_user_names.append([random_name, f'{random.choice(lastnames)}'
                                                f'{"а" if names[random_name] == "f" else ""}',
-                                               names[random_name]
+                                  names[random_name]
                                   ])
 
-    print(*result_user_names, sep='\n')
-
     for _ in range(len(result_user_names)):
-
         tgid += 1
         result_profiles.append([
             tgid,
@@ -415,29 +464,15 @@ async def main():
     tasks = []
 
     for idx, profile_info in enumerate(result_profiles):
-        random_letter = random.choice(cyrillic)
-        random_city = conn.complete_transaction(random_letter, random.randint(1, 10), number_temp=22).object[0]
-        print(random_city)
-        random_city = random_city[-1]
 
-        conn.complete_transaction(profile_info[0], number_temp=9)
-        conn.complete_transaction(profile_info[0],
-                                  result_user_names[idx][0],
-                                  result_user_names[idx][1],
-                                  ''.join([random.choice(list(ascii_letters)) for _ in range(8)]),
-                                  datetime.datetime.now(),
-                                  number_temp=7)
+        tasks.append(asyncio.create_task(full_fill(cities=cities,
+                                                   profile_info=profile_info,
+                                                   result_user_names=result_user_names,
+                                                   idx=idx,
+                                                   conn=conn)))
 
-        conn.complete_transaction('age', profile_info[1], profile_info[0], number_temp=10)
-        conn.complete_transaction('city',
-                                  f"'{random_city}'",
-                                  profile_info[0],
-                                  number_temp=10)
-        conn.complete_transaction('sex',
-                                  True if result_user_names[idx][-1] == 'm' else False,
-                                  profile_info[0],
-                                  number_temp=10)
-        conn.complete_transaction('description', f"'{profile_info[-1]}'", profile_info[0], number_temp=10)
+    print(111)
+    await asyncio.gather(*tasks)
 
     conn.exit()
 

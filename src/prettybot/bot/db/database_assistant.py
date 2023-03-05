@@ -3,28 +3,29 @@ import datetime
 import psycopg2.extras
 from typing import Union
 
-from src.bot.simple import dataclass
-from src.bot.simple.jsons import json_getters
-from src.bot.db import sql_placeholder
-from src.bot.db import sql_query_executor
-from src.bot.db import database_connection
-from src.conf.config import *
+from src.prettybot.scripts import json_getters
+from src.prettybot.dataclass import dataclass
+from src.prettybot.db import sql_placeholder
+from src.prettybot.db import sql_query_executor
+from src.prettybot.db import database_connection
+
 from src.conf.dbconfig import *
+from src.conf.recording_stages import *
 
 
-class Condition:
+class UserConditions:
     ...
 
 
-class Data:
+class UserData:
     ...
 
 
-class ID:
+class UserMessages:
     ...
 
 
-class DBGetMethods:
+class DBGetter:
     _executor: sql_query_executor.Excecutor
 
     def get_logging_info(self, user_id: int) -> dataclass.ResultOperation:
@@ -41,7 +42,7 @@ class DBGetMethods:
     def get_chatting_condition(self, user_id: int) -> Union[bool, BaseException]:
 
         """
-        :param user_id: telegram id of current user
+        :param user_id: bot id of current user
         :return: condition of chatting user or baseexception
         """
 
@@ -116,7 +117,7 @@ class DBGetMethods:
             results = [result.object for result in results]
 
             for idx, dbdata in enumerate(results):
-                if len(dbdata):
+                if type(dbdata) is not BaseException and len(dbdata):
                     results[idx] = results[idx][0]
 
             result = {}
@@ -167,7 +168,7 @@ class DBGetMethods:
         )
 
 
-class DBSetMethods:
+class DBSetter:
     _executor: sql_query_executor.Excecutor
 
     def change_state_logging(self, user_id: int, logtype=None, logstage=None, stop_logging: bool = None):
@@ -178,7 +179,7 @@ class DBSetMethods:
 
             return dataclass.ResultOperation()
 
-        if logtype == 2:
+        if logtype == TYPE_RECORDING[1]:
             response = self._executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id,
                                                                                       number_temp=4))
 
@@ -187,13 +188,8 @@ class DBSetMethods:
 
             return dataclass.ResultOperation()
 
-        if logstage >= LIMIT_REGISTRATION_STAGES:
-            response = self._executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
-
-        else:
-            response = self._executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id,
-                                                                                      number_temp=4))
-
+        response = self._executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id,
+                                                                                  number_temp=4))
         if type(response) is BaseException:
             dataclass.ResultOperation(status=False, description='_postgre_conn error 3')
 
@@ -223,6 +219,8 @@ class DBSetMethods:
         if not (user_id or id_message or type_message) or type_message not in TYPES_MAIN_MESSAGES:
             return dataclass.ResultOperation(status=False, description='args')
 
+        existing_message = super().get_main_message()
+
         self._executor.execute_query(sql_placeholder.fill_sql_template(user_id,
                                                                        id_message,
                                                                        int(type_message),
@@ -231,7 +229,7 @@ class DBSetMethods:
         return dataclass.ResultOperation()
 
     def record_user_param(self, user_id: int, name: str, value: Union[str, int, bool]):
-
+        print(name, value, '-----f')
         try:
             response = self._executor.execute_query(
                 sqlquery=sql_placeholder.fill_sql_template(name, value, user_id, number_temp=10)
@@ -303,13 +301,12 @@ class DBSetMethods:
         )
 
 
-class DatabaseScripts(DBGetMethods, DBSetMethods):
+class DatabaseScripts(DBGetter, DBSetter):
     all_cities: dict[str]
     _executor: sql_query_executor.Excecutor
     _postgre_conn: database_connection
 
     def __init__(self):
-
         db_settings = json_getters.get_setings_db()
 
         if not db_settings.status:

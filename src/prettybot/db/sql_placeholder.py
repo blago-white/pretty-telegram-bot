@@ -1,5 +1,5 @@
 from typing import Union
-from src.conf import config
+from src.conf import pbconfig
 
 
 def fill_sql_template(*args, number_temp: int) -> Union[str, Exception]:
@@ -13,7 +13,7 @@ def fill_sql_template(*args, number_temp: int) -> Union[str, Exception]:
         return IndexError('not correct number template')
 
     try:
-        return config.TEMPLATES[number_temp].format(*args)
+        return pbconfig.TEMPLATES[number_temp].format(*args)
 
     except IndexError:
         return IndexError('Not correct number of template of not full args')

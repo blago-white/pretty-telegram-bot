@@ -1,8 +1,8 @@
 import aiogram
 from aiogram.types import ParseMode
-from src.conf.config import STATEMENTS_BY_LANG, BASE_STATEMENTS
-from src.bot.simple import dataclass
-from src.conf.config import DEFAULT_LANG
+from src.conf.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
+from src.prettybot.dataclass import dataclass
+from src.conf.pbconfig import DEFAULT_LANG
 
 __all__ = ['send_reply_message', 'send_photo', 'sender', 'send_except_message', 'delete_message']
 
@@ -13,26 +13,6 @@ class MessageSender:
     def __init__(self, bot: aiogram.Bot):
         self.bot = bot
 
-    @staticmethod
-    async def send_reply_message(
-            message: aiogram.types.Message,
-            description: str = None,
-            parse_mode: aiogram.types.ParseMode = ParseMode.HTML) -> dataclass.ResultOperation:
-        """
-        :param message: aiogram message instance
-        :param description: string, sending with photo_id
-        :param parse_mode: telegram parsemode, default = HTML
-
-        :returns: Dataclass.ResultOperation
-        """
-
-        try:
-            sending_response = await message.reply(description, parse_mode=parse_mode)
-            return dataclass.ResultOperation(sending_response.message_id)
-
-        except:
-            return dataclass.ResultOperation(status=False, description='sending error')
-
     async def send_photo(
             self,
             user_id: int,
@@ -40,14 +20,16 @@ class MessageSender:
             description: str = None,
             parse_mode: aiogram.types.ParseMode = ParseMode.HTML,
             keyboard: aiogram.types.InlineKeyboardMarkup = None) -> dataclass.ResultOperation:
+
         """
         :param user_id: integer, user id
-        :param photo_id: string, telegram id of file photo
+        :param photo_id: string, bot id of file photo
         :param description: string, description to photo
-        :param parse_mode: telegram parsemode, default = HTML
+        :param parse_mode: bot parsemode, default = HTML
         :param keyboard: reply inline keyboard, sending with photo
 
-        :returns: Dataclass.ResultOperation
+        :rtype ResultOperation class
+        :returns: sended message id
         """
 
         try:
@@ -76,13 +58,15 @@ class MessageSender:
             parse_mode: aiogram.types.ParseMode = ParseMode.HTML,
             markup: aiogram.types.InlineKeyboardMarkup = None
     ) -> dataclass.ResultOperation:
+
         """
         :param user_id: integer, user id
         :param description: string, sending with photo_id
-        :param parse_mode: telegram parsemode, default = HTML
-        :param markup: telegram markup, sended with message
+        :param parse_mode: bot parsemode, default = HTML
+        :param markup: bot markup, sended with message
 
-        :returns: Dataclass.ResultOperation
+        :rtype ResultOperation class
+        :returns: sended message id
         """
 
         try:
@@ -109,9 +93,10 @@ class MessageSender:
         :param description: string, default = 'sorry, there was a problem, please try again later!'
         :param user_lang_code: lang code of user defaul - en
         :param markup: inline markup
-        :param parse_mode: telegram parsemode, default = HTML
+        :param parse_mode: bot parsemode, default = HTML
 
-        :returns: Dataclass.ResultOperation
+        :rtype ResultOperation class
+        :returns: sended message id
         """
 
         if description is None:
@@ -145,12 +130,14 @@ class MessageDeleter:
             self,
             user_id: int,
             idmes: list[int]) -> dataclass.ResultOperation:
+
         """
 
-        :param user_id: telegram id of user
+        :param user_id: bot id of user
         :param idmes: id of the message you want to delete, integer or list of integers
 
-        :returns: Dataclass.ResultOperation
+        :rtype ResultOperation class
+        :returns: result of deleting
 
         """
 
@@ -164,6 +151,7 @@ class MessageDeleter:
                 return dataclass.ResultOperation()
 
             response = await self.bot.delete_message(user_id, idmes)
+
             if not response:
                 return dataclass.ResultOperation(status=False, description='deliting error')
 
@@ -191,14 +179,9 @@ class MessageEditor:
         :param id_message: id of current message
         :param new_description: new text for current message
 
-        :return: result operation, if successful object is id of editing message
+        :rtype ResultOperation class
+        :returns: result operation, if successful object is id of editing message
         """
-
-        if not new_description:
-            return dataclass.ResultOperation(status=False, description='Not correct length of description')
-
-        if user_id < 0 or id_message < 0:
-            return dataclass.ResultOperation(status=False, description='Not correct value for id user or id message')
 
         try:
             await self.bot.edit_message_text(text=new_description,

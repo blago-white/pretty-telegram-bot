@@ -1,7 +1,7 @@
 import json
 
-from src.bot.simple import dataclass
-from src.conf import paths
+from src.prettybot.dataclass import dataclass
+from src.conf.paths import paths
 
 
 def get_setings_db() -> dataclass.ResultOperation:
@@ -14,21 +14,17 @@ def get_setings_db() -> dataclass.ResultOperation:
     """
 
     with open(paths.dictpaths['dbconfig'], 'r') as settings_file:
-        result = json.load(settings_file)
-
-    return dataclass.ResultOperation(object=result)
+        return dataclass.ResultOperation(object=json.load(settings_file))
 
 
 def get_token() -> dataclass.ResultOperation:
     """
 
-    function to get telegram token from file
+    function to get bot token from file
 
     :returns: result of operation [string]
 
     """
 
     with open(paths.dictpaths['token'], 'r') as token_file:
-        result = token_file.readline()
-
-    return dataclass.ResultOperation(object=result)
+        return dataclass.ResultOperation(object=token_file.readline())

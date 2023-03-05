@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectTreeColorHighlighter">
-    <files />
+    <files>
+      <node color="8" path="$PROJECT_DIR$/src/bot/telegram/bot_launcher.py" />
+      <node color="3" path="$PROJECT_DIR$/src/bot/telegram/helper_bot_scripts.py" />
+      <node color="1" path="$PROJECT_DIR$/src/bot/telegram/message_catchers.py" />
+      <node color="1" path="$PROJECT_DIR$/src/bot/telegram/message_handlers.py" />
+      <node color="5" path="$PROJECT_DIR$/src/bot/telegram/message_manager.py" />
+      <node color="1" path="$PROJECT_DIR$/src/bot/telegram/prehandler.py" />
+      <node color="4" path="$PROJECT_DIR$/src/bot/telegram/routes.py" />
+      <node color="6" path="$PROJECT_DIR$/src/bot/telegram/text_handlers.py" />
+    </files>
     <colors>
       <color id="1" value="#4f060d" name="Color 1" enabled="true" />
       <color id="2" value="#44220e" name="Color 2" enabled="true" />
