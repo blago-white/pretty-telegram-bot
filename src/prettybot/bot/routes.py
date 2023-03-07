@@ -1,6 +1,5 @@
 import aiogram
 from src.prettybot.bot.messages import catchers
-from src.prettybot.bot.messages.prehandler import PreHandler
 
 
 def registrate_handlers(dispatcher: aiogram.dispatcher,

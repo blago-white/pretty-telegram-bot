@@ -5,41 +5,39 @@ import asyncio
 
 import aiogram
 
-from src.prettybot.callback import callbacks
-from src.prettybot.bot.messages import tgmessages, text_handlers
-from src.prettybot.scripts import auxiliary
+from src.prettybot.bot.messages import tgmessages
+from src.prettybot.bot.messages.handlers import texthandlers
+from src.prettybot.scripts import supportive
 from src.prettybot.bot.db import database_assistant, registration_data_handler, large_messages
+from src.prettybot.dataclass import dataclass
 
-from src.prettybot.callback.callback_keyboards import *
-from src.conf.recording_stages import *
+from src.prettybot.bot.callback.callback_keyboards import *
+from src.config.recording_stages import *
 
 __all__ = ['CallbackHandler', 'CommandHandler', 'ContentTypeHandler']
 
 
 class BotEventHandler:
-    database_operation_assistant: database_assistant.DatabaseScripts
+    database_operation_assistant: database_assistant.Database
     bot: aiogram.Bot
     message_sender: tgmessages.MessageSender
     message_deleter: tgmessages.MessageDeleter
     large_message_renderer: large_messages.LargeMessageRenderer
-    large_message_generator: large_messages.LargeMessageTextGenerator
     registration_data_handler: registration_data_handler.RegistrationDataHandler
 
     def __init__(
             self,
-            database_operation_assistant: database_assistant.DatabaseScripts,
+            database_operation_assistant: database_assistant.Database,
             bot: aiogram.Bot,
             message_sender: tgmessages.MessageSender,
             message_deleter: tgmessages.MessageDeleter,
             large_message_renderer: large_messages.LargeMessageRenderer,
-            large_message_generator: large_messages.LargeMessageTextGenerator,
             registration_data_handler_: registration_data_handler.RegistrationDataHandler):
-        if not (type(database_operation_assistant) == database_assistant.DatabaseScripts
+        if not (type(database_operation_assistant) == database_assistant.Database
                 and type(bot) == aiogram.Bot
                 and type(message_sender) == tgmessages.MessageSender
                 and type(message_deleter) == tgmessages.MessageDeleter
                 and type(large_message_renderer) == large_messages.LargeMessageRenderer
-                and type(large_message_generator) == large_messages.LargeMessageTextGenerator
                 and type(registration_data_handler_) == registration_data_handler.RegistrationDataHandler):
             raise ValueError('Not correct type of given to __init__ arguments check type hints')
 
@@ -48,16 +46,14 @@ class BotEventHandler:
         self.message_sender = message_sender
         self.message_deleter = message_deleter
         self.large_message_renderer = large_message_renderer
-        self.large_message_generator = large_message_generator
         self.registration_data_handler = registration_data_handler_
 
 
 class CallbackHandler:
-    database_operation_assistant: database_assistant.DatabaseScripts
+    database_operation_assistant: database_assistant.Database
     bot: aiogram.Bot
     message_sender: tgmessages.MessageSender
     large_message_renderer: large_messages.LargeMessageRenderer
-    large_message_generator: large_messages.LargeMessageTextGenerator
     registration_data_handler: registration_data_handler.RegistrationDataHandler
 
     def __init__(self, bot_event_handler: BotEventHandler):
@@ -67,17 +63,21 @@ class CallbackHandler:
 
     async def inline_keyboard_callback(self, callback_query: aiogram.types.CallbackQuery):
         sending_response = None
+
         user_id, query_id, from_message_id = (callback_query.from_user.id,
                                               callback_query.id,
                                               callback_query.message.message_id)
 
-        payload = callbacks.unpack_playload(payload_string=callback_query.data)
+        await self.bot.answer_callback_query(query_id)
+
+        payload = supportive.unpack_playload(payload_string=callback_query.data)
         type_request, type_requested_operation = payload.values()
 
         user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-        _, type_logging, stage_logging = self.database_operation_assistant.get_logging_info(user_id=user_id).object
 
-        await self.bot.answer_callback_query(query_id)
+        _, type_logging, stage_logging = self.database_operation_assistant.get_recording_condition(
+            user_id=user_id
+        ).object
 
         if type_request == 'main':
             if type_requested_operation == 'change_profile_data':
@@ -94,10 +94,6 @@ class CallbackHandler:
 
             elif type_requested_operation == 'back':
                 await self.large_message_renderer.render_profile(
-                    account_body=self.large_message_generator.generate_profile_body(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code
-                    ),
                     user_id=user_id,
                     user_lang_code=user_lang_code)
 
@@ -107,8 +103,9 @@ class CallbackHandler:
         elif type_request in ('change', 'changewish'):
             if type_requested_operation != 'back':
 
-                callback_markup = callbacks.get_inline_keyboard_by_stage(
-                    stage=STAGE_BY_PAYLOAD[type_requested_operation],
+                callback_markup = supportive.get_inline_keyboard_by_stage(
+                    recordstage=STAGE_BY_PAYLOAD[type_requested_operation],
+                    recordtype=type_logging
                 )
 
                 if type_request == 'change':
@@ -120,12 +117,16 @@ class CallbackHandler:
                         markup=callback_markup[user_lang_code]
                     )
 
+                    await self.large_message_renderer.delete_large_message(
+                        user_id=user_id,
+                        type_message=PROFILE_MESSAGE_TYPE
+                    )
+
                 elif type_request == 'changewish':
                     sending_response = await self.message_sender.send(
                         user_id=user_id,
                         description=QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING[
-                            type_requested_operation
-                        ][user_lang_code],
+                            type_requested_operation][user_lang_code],
                         markup=callback_markup[user_lang_code]
                     )
 
@@ -140,18 +141,19 @@ class CallbackHandler:
             if type_requested_operation in STAGE_BY_PAYLOAD.keys():
                 stage = STAGE_BY_PAYLOAD[payload.get('type_requested_operation')]
 
-                self.database_operation_assistant.change_state_logging(user_id=user_id,
-                                                                       logtype=STAGES_RECORDING[1]
-                                                                       if type_request == 'change' else
-                                                                       STAGES_RECORDING[2],
-                                                                       logstage=stage
-                                                                       )
+                self.database_operation_assistant.change_recording_condition(user_id=user_id,
+                                                                             logtype=TYPE_RECORDING[1]
+                                                                             if type_request == 'change' else
+                                                                             TYPE_RECORDING[2],
+                                                                             logstage=stage
+                                                                             )
 
         elif type_request == 'sex':
             if not stage_logging:
+                print('----!', stage_logging)
                 return
 
-            received_sex = auxiliary.convert_sex_type(type_requested_operation)
+            received_sex = supportive.convert_sex_type(type_requested_operation)
 
             self.registration_data_handler.record_registration_data(
                 user_id=user_id,
@@ -168,24 +170,26 @@ class CallbackHandler:
                     ].q_desc
                 )
 
-                self.database_operation_assistant.change_state_logging(
+                self.database_operation_assistant.change_recording_condition(
                     user_id=user_id,
                     logtype=type_logging,
-                    logstage=auxiliary.increase_stage_recording(stage_logging))
+                    logstage=stage_logging,
+                    increase=True)
+
+                await self.large_message_renderer.delete_large_message(
+                    user_id=user_id,
+                    type_message=QUESTION_MESSAGE_TYPE)
 
             elif type_logging == TYPE_RECORDING[2]:
-                sending_response = await self.large_message_renderer.render_finding_message(
+                await self.large_message_renderer.render_finding_message(
                     user_id=user_id,
                     user_lang_code=user_lang_code)
 
-            self.database_operation_assistant.add_main_message_to_db(
-                user_id=user_id,
-                id_message=sending_response.object,
-                type_message=QUESTION_MESSAGE_TYPE)
-
-            await self.large_message_renderer.delete_large_message(
-                user_id=user_id,
-                type_message=QUESTION_MESSAGE_TYPE)
+            if type(sending_response) == dataclass.ResultOperation:
+                self.database_operation_assistant.add_main_message_to_db(
+                    user_id=user_id,
+                    id_message=sending_response.object,
+                    type_message=QUESTION_MESSAGE_TYPE)
 
         elif type_request == 'find':
 
@@ -240,44 +244,30 @@ class CallbackHandler:
                         )
 
             elif type_requested_operation == 'clarify':
-                sending_response = await self.message_sender.send(
-                    user_id=user_id,
-                    description=self.large_message_renderer.get_finding_params(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code
-                    ),
-                    markup=INLINE_CHANGE_PARAMS_FIND_KB[
-                        user_lang_code])
-
-            elif type_requested_operation == 'back':
-                id_finding_window = await self.large_message_renderer.render_finding_message(
-                    user_id=user_id,
-                    user_lang_code=user_lang_code)
-                await self.large_message_renderer.delete_large_message(
-                    user_id=user_id,
-                    type_message=QUESTION_MESSAGE_TYPE)
-
-                self.database_operation_assistant.add_main_message_to_db(
-                    user_id=user_id,
-                    id_message=id_finding_window.object,
-                    type_message=QUESTION_MESSAGE_TYPE)
+                await self.large_message_renderer.render_clarify_message(user_id=user_id,
+                                                                         user_lang_code=user_lang_code)
 
                 return
 
-            await self.large_message_renderer.delete_large_message(user_id=user_id, type_message=QUESTION_MESSAGE_TYPE)
+            elif type_requested_operation == 'back':
+                await self.large_message_renderer.render_finding_message(
+                    user_id=user_id,
+                    user_lang_code=user_lang_code)
+
+                return
 
         if sending_response and sending_response.object:
+            await self.large_message_renderer.delete_large_message(user_id=user_id, type_message=QUESTION_MESSAGE_TYPE)
             self.database_operation_assistant.add_main_message_to_db(user_id=user_id,
                                                                      id_message=sending_response.object,
                                                                      type_message=QUESTION_MESSAGE_TYPE)
 
 
 class CommandHandler:
-    database_operation_assistant: database_assistant.DatabaseScripts
+    database_operation_assistant: database_assistant.Database
     message_sender: tgmessages.MessageSender
     message_deleter: tgmessages.MessageDeleter
     large_message_renderer: large_messages.LargeMessageRenderer
-    large_message_generator: large_messages.LargeMessageTextGenerator
     registration_data_handler: registration_data_handler.RegistrationDataHandler
 
     def __init__(self, bot_event_handler: BotEventHandler):
@@ -285,24 +275,16 @@ class CommandHandler:
                          for param in bot_event_handler.__dict__
                          if param in CommandHandler.__annotations__}
 
-    async def start(self, message: aiogram.types.Message, user_id: int):
-        user_logging_condition = self.database_operation_assistant.get_logging_info(user_id=user_id)
-
-        if not user_logging_condition.status:
-            await self.message_sender.send_except_message(user_id=user_id)
-            return
+    async def start(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
+        user_logging_condition = self.database_operation_assistant.get_recording_condition(user_id=user_id)
 
         if not user_logging_condition.object:
-            response = self.database_operation_assistant.add_user_entry(user_id=user_id,
-                                                                        fname=message.from_user.first_name,
-                                                                        lname=message.from_user.last_name,
-                                                                        telegname=message.chat.username,
-                                                                        date_message=message.date
-                                                                        )
-
-            if not response.status:
-                await self.message_sender.send_except_message(user_id=user_id)
-                return
+            response = self.database_operation_assistant.add_new_user(user_id=user_id,
+                                                                      fname=message.from_user.first_name,
+                                                                      lname=message.from_user.last_name,
+                                                                      telegname=message.chat.username,
+                                                                      date_message=message.date
+                                                                      )
 
             welcome_sending_response = await self.message_sender.send(user_id=user_id,
                                                                       description=BASE_STATEMENTS.welcome.format(
@@ -328,23 +310,17 @@ class CommandHandler:
                                                                      type_message=QUESTION_MESSAGE_TYPE)
 
         elif user_logging_condition.object:
-            user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-
             logging, logging_type, logging_stage = user_logging_condition.object
 
             if logging:
                 if logging_type not in MAIN_REGISTRATION_TYPE:
-                    self.database_operation_assistant.change_state_logging(user_id=user_id, stop_logging=True)
+                    self.database_operation_assistant.change_recording_condition(user_id=user_id, stop_logging=True)
 
                     for type_ in TYPES_MAIN_MESSAGES:
                         if type_ != PROFILE_MESSAGE_TYPE:
                             await self.large_message_renderer.delete_large_message(user_id=user_id, type_message=type_)
 
                     await self.large_message_renderer.render_profile(
-                        account_body=self.large_message_generator.generate_profile_body(
-                            user_id=user_id,
-                            user_lang_code=user_lang_code
-                        ),
                         user_id=user_id,
                         user_lang_code=user_lang_code)
 
@@ -356,17 +332,14 @@ class CommandHandler:
                                                                           user_lang_code].help)
 
                     await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
-                    await auxiliary.start_delay(LONG_DELAY)
+                    await supportive.start_delay(LONG_DELAY)
                     await self.message_deleter.delete_message(user_id=user_id, idmes=sending_response.object)
 
             elif not logging:
                 await self.large_message_renderer.render_profile(
-                    account_body=self.large_message_generator.generate_profile_body(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code
-                    ),
                     user_id=user_id,
                     user_lang_code=user_lang_code)
+
                 await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
 
             else:
@@ -374,12 +347,10 @@ class CommandHandler:
                                                                   description=STATEMENTS_BY_LANG[user_lang_code].help)
 
                 await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
-                await auxiliary.start_delay(LONG_DELAY)
+                await supportive.start_delay(LONG_DELAY)
                 await self.message_deleter.delete_message(user_id=user_id, idmes=sending_response.object)
 
-    async def help(self, message: aiogram.types.Message, user_id: int):
-        user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-
+    async def help(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
         sending_response = await self.message_sender.send(
             user_id=user_id,
             description=STATEMENTS_BY_LANG[user_lang_code].help
@@ -387,13 +358,12 @@ class CommandHandler:
 
         await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
 
-        await auxiliary.start_delay(MEDIUM_DELAY)
+        await supportive.start_delay(MEDIUM_DELAY)
 
         await self.message_deleter.delete_message(user_id=user_id,
                                                   idmes=sending_response.object)
 
-    async def restart(self, message: aiogram.types.Message, user_id: int):
-
+    async def restart(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
         delete_tasks = list()
 
         for type_main_message in TYPES_MAIN_MESSAGES:
@@ -404,32 +374,30 @@ class CommandHandler:
 
         await asyncio.gather(*delete_tasks)
 
-        self.database_operation_assistant.del_user_annotations(user_id=user_id)
+        self.database_operation_assistant.delete_user_records(user_id=user_id)
         await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
 
-    async def change_lang(self, message: aiogram.types.Message, user_id: int):
+    async def change_lang(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
 
         self.database_operation_assistant.change_user_lang(user_id=user_id, lang_code=message.text[1:3])
 
         await self.message_sender.send(
             user_id=user_id,
             description=STATEMENTS_BY_LANG[
-                self.database_operation_assistant.get_user_lang_code(user_id=user_id)
+                user_lang_code
             ].change_lang_good)
 
         await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
 
-        await auxiliary.start_delay(delay=DEFAULT_DELAY)
+        await supportive.start_delay(delay=DEFAULT_DELAY)
 
         await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id + 1)
 
-    async def stop_chatting(self, message: aiogram.types.Message, user_id: int):
+    async def stop_chatting(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
 
         current_chatting_condition = self.database_operation_assistant.get_chatting_condition(user_id=user_id)
 
         if current_chatting_condition.object:
-            user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-
             self.database_operation_assistant.change_chatting_condition(user_id=user_id, new_condition=False)
 
             response_sending = await self.message_sender.send(user_id=user_id,
@@ -437,25 +405,20 @@ class CommandHandler:
                                                                   user_lang_code].end_chatting)
 
             await self.large_message_renderer.render_profile(
-                account_body=self.large_message_generator.generate_profile_body(
-                    user_id=user_id,
-                    user_lang_code=user_lang_code),
-
                 user_id=user_id,
                 user_lang_code=user_lang_code)
 
-            await auxiliary.start_delay(DEFAULT_DELAY)
+            await supportive.start_delay(DEFAULT_DELAY)
             await self.message_deleter.delete_message(user_id=user_id, idmes=response_sending.object)
 
         await self.message_deleter.delete_message(user_id=user_id, idmes=message.message_id)
 
 
 class ContentTypeHandler:
-    database_operation_assistant: database_assistant.DatabaseScripts
+    database_operation_assistant: database_assistant.Database
     message_sender: tgmessages.MessageSender
     message_deleter: tgmessages.MessageDeleter
     large_message_renderer: large_messages.LargeMessageRenderer
-    large_message_generator: large_messages.LargeMessageTextGenerator
     registration_data_handler: registration_data_handler.RegistrationDataHandler
 
     def __init__(self, bot_event_handler: BotEventHandler):
@@ -463,54 +426,38 @@ class ContentTypeHandler:
                          for param in bot_event_handler.__dict__
                          if param in ContentTypeHandler.__annotations__}
 
-    async def photo(self, message: aiogram.types.Message, user_id: int) -> None:
+    async def photo(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
 
-        logging, type_logging, stage_logging = self.database_operation_assistant.get_logging_info(
+        logging, type_logging, stage_logging = self.database_operation_assistant.get_recording_condition(
             user_id=user_id
         ).object
 
         file_id = message.photo[0]['file_id']
 
-        print(logging, stage_logging, '-p-----------------')
-
         if logging and stage_logging == STAGES_RECORDING[4]:
-            user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-
-            statement_response = text_handlers.handle_message(
-                file_id,
-                user_lang_code,
-                type_logging,
-                self.database_operation_assistant.all_cities,
-                recordstage=stage_logging
-            )
-
-            if statement_response.status:
-                self.registration_data_handler.record_registration_data(user_id=user_id,
-                                                                        message_text=file_id,
-                                                                        logstage=stage_logging,
-                                                                        logtype=type_logging,
-                                                                        updating_data=
-                                                                        True if type_logging == TYPE_RECORDING[1]
-                                                                        else False)
-
-                await self.large_message_renderer.render_profile(
-                    account_body=self.large_message_generator.generate_profile_body(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code
-                    ),
-                    user_id=user_id,
-                    user_lang_code=user_lang_code,
-                )
-
-                self.database_operation_assistant.change_state_logging(user_id=user_id, stop_logging=True)
-
             await self.large_message_renderer.delete_large_message(user_id=user_id,
                                                                    type_message=QUESTION_MESSAGE_TYPE)
+
+            self.registration_data_handler.record_registration_data(user_id=user_id,
+                                                                    message_text=file_id,
+                                                                    logstage=stage_logging,
+                                                                    logtype=type_logging,
+                                                                    updating_data=True
+                                                                    if type_logging == TYPE_RECORDING[1]
+                                                                    else
+                                                                    False)
+
+            await self.large_message_renderer.render_profile(
+                user_id=user_id,
+                user_lang_code=user_lang_code,
+            )
+
+            self.database_operation_assistant.change_recording_condition(user_id=user_id, stop_logging=True)
 
         await self.message_deleter.delete_message(user_id=message.from_user.id,
                                                   idmes=message.message_id)
 
-    async def text(self, message: aiogram.types.Message, user_id: int) -> None:
+    async def text(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
 
         if self.database_operation_assistant.get_chatting_condition(user_id=user_id).object:
             await self.message_sender.send(user_id=message.from_user.id,
@@ -518,11 +465,7 @@ class ContentTypeHandler:
 
             return
 
-        user_logging_data = self.database_operation_assistant.get_logging_info(user_id=user_id)
-
-        if not user_logging_data.status or len(user_logging_data.object) < 3:
-            await self.message_sender.send_except_message(user_id=user_id)
-            return
+        user_logging_data = self.database_operation_assistant.get_recording_condition(user_id=user_id)
 
         if not user_logging_data.object:
             await self.message_sender.send_except_message(user_id=user_id,
@@ -530,24 +473,24 @@ class ContentTypeHandler:
 
             return
 
-        logging, type_logging, stage_logging = user_logging_data.object
         sending_response = None
+        logging, type_logging, stage_logging = user_logging_data.object
 
         if logging:
-            user_lang_code = self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-
-            statement = text_handlers.handle_message(message.text,
-                                                     user_lang_code,
-                                                     type_logging,
-                                                     self.database_operation_assistant.all_cities,
-                                                     recordstage=stage_logging)
+            statement = texthandlers.handle_message(message.text,
+                                                    user_lang_code,
+                                                    type_logging,
+                                                    self.database_operation_assistant.all_cities,
+                                                    recordstage=stage_logging)
 
             if stage_logging in STAGE_BLOCKED_TEXT_MESSAGES:
                 if stage_logging == STAGES_RECORDING[2]:
                     sending_response = await self.message_sender.send(
                         user_id=user_id,
                         description=STATEMENT_FOR_STAGE[stage_logging],
-                        markup=callbacks.get_inline_keyboard_by_stage(stage=stage_logging)
+                        markup=supportive.get_inline_keyboard_by_stage(
+                            recordstage=stage_logging,
+                            recordtype=type_logging)
                     )
 
             if statement.status:
@@ -558,7 +501,9 @@ class ContentTypeHandler:
 
                 if type_logging == TYPE_RECORDING[0]:
 
-                    markup_for_stage = callbacks.get_inline_keyboard_by_stage(stage=stage_logging)
+                    markup_for_stage = supportive.get_inline_keyboard_by_stage(
+                        recordstage=stage_logging,
+                        recordtype=type_logging)
 
                     if statement.object:
                         if stage_logging:
@@ -575,24 +520,21 @@ class ContentTypeHandler:
                                     description=statement.object
                                 )
 
-                            self.database_operation_assistant.change_state_logging(
+                            self.database_operation_assistant.change_recording_condition(
                                 user_id=user_id,
                                 logtype=type_logging,
-                                logstage=auxiliary.increase_stage_recording(stage_logging))
+                                logstage=stage_logging,
+                                increase=True)
 
                 if type_logging == TYPE_RECORDING[1]:
                     await self.large_message_renderer.render_profile(
-                        account_body=self.large_message_generator.generate_profile_body(
-                            user_id=user_id,
-                            user_lang_code=user_lang_code
-                        ),
                         user_id=user_id,
                         user_lang_code=user_lang_code)
 
-                    self.database_operation_assistant.change_state_logging(user_id=user_id, stop_logging=True)
+                    self.database_operation_assistant.change_recording_condition(user_id=user_id, stop_logging=True)
 
                 if type_logging == TYPE_RECORDING[2]:
-                    sending_response = await self.large_message_renderer.render_finding_message(
+                    await self.large_message_renderer.render_finding_message(
                         user_id=user_id,
                         user_lang_code=user_lang_code)
 
@@ -602,10 +544,9 @@ class ContentTypeHandler:
                                                                                      user_lang_code=user_lang_code,
                                                                                      description=statement.object)
 
-            await self.large_message_renderer.delete_large_message(user_id=user_id,
-                                                                   type_message=QUESTION_MESSAGE_TYPE)
-
             if sending_response and sending_response.status:
+                await self.large_message_renderer.delete_large_message(user_id=user_id,
+                                                                       type_message=QUESTION_MESSAGE_TYPE)
                 self.database_operation_assistant.add_main_message_to_db(user_id=user_id,
                                                                          id_message=sending_response.object,
                                                                          type_message=QUESTION_MESSAGE_TYPE)

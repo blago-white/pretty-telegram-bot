@@ -2,10 +2,8 @@ import re
 from typing import Union
 import asyncio
 
-from src.prettybot.dataclass import dataclass
-from src.conf.pbconfig import MAX_DELAY_TIME_SECONDS, MEDIUM_LEN_SAMPLING_CITIES
-from src.conf.recording_stages import *
-from src.prettybot.callback.callback_keyboards import *
+from src.config.recording_stages import *
+from src.prettybot.bot.callback.callback_keyboards import *
 
 
 def get_age_declination(age: int) -> str:
@@ -72,10 +70,6 @@ def unpack_playload(payload_string: str) -> dict:
                 type_requested_operation=payload_string.split('%')[1])
 
 
-def get_inline_keyboard_by_stage(stage: int) -> dict:
-    return INLINE_SEX_KB if stage == STAGES_RECORDING[2] else INLINE_EMPTY_KB
-
-
 def generate_drop_down_cities_list(cities_list: list) -> str:
     if len(cities_list) > MAX_LEN_SAMPLING_CITIES:
         cities_list[MAX_LEN_SAMPLING_CITIES] += BASE_STATEMENTS.overflow
@@ -85,4 +79,20 @@ def generate_drop_down_cities_list(cities_list: list) -> str:
 
 
 def increase_stage_recording(stage_recording: str) -> str:
-    return STAGES_RECORDING[STAGES_RECORDING.index(stage_recording) + 1]
+    return STAGES_RECORDING[STAGES_RECORDING.index(stage_recording) + 1
+    if stage_recording != LAST_REGISTRATION_STAGE else STAGES_RECORDING.index(stage_recording)
+    ]
+
+
+def get_inline_keyboard_by_stage(recordstage: str, recordtype: str) -> dict:
+    if recordtype == TYPE_RECORDING[0] and recordstage == STAGES_RECORDING[1]:
+        return INLINE_SEX_KB
+
+    elif recordtype != TYPE_RECORDING[0] and recordstage == STAGES_RECORDING[2]:
+        return INLINE_SEX_KB
+
+    return INLINE_EMPTY_KB
+
+
+def validate_text_to_db(text: str) -> str:
+    return "'{}'".format(text.replace("'", "''").replace("/", ""))

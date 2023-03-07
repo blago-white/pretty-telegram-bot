@@ -2,12 +2,12 @@ import re
 from typing import Union
 
 from src.prettybot.dataclass import dataclass
-from src.prettybot.scripts import auxiliary
+from src.prettybot.scripts import supportive
 from src.prettybot.bot.db import large_messages
-from src.conf.recording_stages import TYPE_RECORDING, LENGHT_TYPE_RECORDING_VAL
-from src.conf.dbconfig import AMOUNT_CITIES
+from src.config.recording_stages import TYPE_RECORDING, LENGHT_TYPE_RECORDING_VAL
+from src.config.dbconfig import AMOUNT_CITIES
 
-from src.conf.pbconfig import *
+from src.config.pbconfig import *
 
 __all__ = ['handle_message']
 
@@ -31,7 +31,7 @@ def handle_age(*args, message_text: str, user_lang_code: str) -> Union[str, data
                                              object=STATEMENTS_BY_LANG[user_lang_code].invalid_v_age)
 
     elif recordtype == TYPE_RECORDING[2]:
-        if auxiliary.check_numbers_in_string(string=message_text) is not None:
+        if supportive.check_numbers_in_string(string=message_text) is not None:
             numbers = [i for i in message_text if i.isdigit()]
 
             if len(numbers) < 4:
@@ -46,12 +46,12 @@ def handle_city(*args, message_text: str, user_lang_code: str):
 
     if str.lower(str(message_text)) not in cities:
 
-        simular_cities = auxiliary.get_similar_cities(city=str.lower(message_text),
-                                                      cities=cities)
+        simular_cities = supportive.get_similar_cities(city=str.lower(message_text),
+                                                       cities=cities)
 
         if simular_cities:
             return dataclass.ResultOperation(status=False,
-                                             object=auxiliary.generate_drop_down_cities_list(
+                                             object=supportive.generate_drop_down_cities_list(
                                                  cities_list=simular_cities)
                                              )
 
@@ -60,7 +60,7 @@ def handle_city(*args, message_text: str, user_lang_code: str):
     return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_sex)
 
 
-def handle_description(*args, message_text: str, user_lang_code: str):
+def handle_description(*_, message_text: str, user_lang_code: str):
     if len(message_text) > MAX_LEN_DESCRIPTION:
         return dataclass.ResultOperation(status=False,
                                          object=STATEMENTS_BY_LANG[user_lang_code].invalid_l_desc.format(
@@ -70,10 +70,8 @@ def handle_description(*args, message_text: str, user_lang_code: str):
     return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_photo)
 
 
-def handle_photo(*args, message_text: str, user_lang_code: str):
-    return dataclass.ResultOperation(status=True) \
-        if message_text else \
-        dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_t_photo)
+def handle_photo(*_, message_text: str, user_lang_code: str):
+    return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_t_photo)
 
 
 def handle_message(
@@ -91,7 +89,7 @@ def handle_message(
     :return: your statement
     """
 
-    print(args[0], '-----666')
+    print(args[0], 'stmt', recordstage)
 
     return HANDLE_SCRIPT_BY_RECORDING_STAGE[recordstage](*args, message_text=args[0], user_lang_code=args[1])
 

@@ -1,8 +1,8 @@
 import aiogram
 from aiogram.types import ParseMode
-from src.conf.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
+from src.config.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
 from src.prettybot.dataclass import dataclass
-from src.conf.pbconfig import DEFAULT_LANG
+from src.config.pbconfig import DEFAULT_LANG
 
 __all__ = ['send_reply_message', 'send_photo', 'sender', 'send_except_message', 'delete_message']
 

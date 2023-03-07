@@ -16,7 +16,6 @@ class Excecutor:
 
         with self.postgres_connection.cursor() as connection:
             try:
-                print(sqlquery)
                 connection.execute(sqlquery)
 
             except Exception as exception:

@@ -1,11 +1,11 @@
 import aiogram
 
-from src.prettybot.bot.messages import handlers
-from src.prettybot.bot.messages.prehandler import PreHandler
+from src.prettybot.bot.messages.handlers import msghandlers
+from src.prettybot.bot.messages.handlers.prehandler import PreHandler
 
 
 class CallbackCatcher:
-    callback_handler: handlers.CallbackHandler
+    callback_handler: msghandlers.CallbackHandler
 
     def __init__(self, callback_handler):
         self.callback_handler = callback_handler
@@ -17,10 +17,10 @@ class CallbackCatcher:
 
 
 class CommandsCatcher:
-    commands_handler: handlers.CommandHandler
+    commands_handler: msghandlers.CommandHandler
     prehandler: PreHandler
 
-    def __init__(self, commands_handlers: handlers.CommandHandler, prehandler: PreHandler):
+    def __init__(self, commands_handlers: msghandlers.CommandHandler, prehandler: PreHandler):
         self.commands_handler = commands_handlers
         self.prehandler = prehandler
 
@@ -41,10 +41,10 @@ class CommandsCatcher:
 
 
 class ContentTypeCatcher:
-    content_type_handler: handlers.ContentTypeHandler
+    content_type_handler: msghandlers.ContentTypeHandler
     prehandler: PreHandler
 
-    def __init__(self, content_type_handler: handlers.ContentTypeHandler, prehandler: PreHandler):
+    def __init__(self, content_type_handler: msghandlers.ContentTypeHandler, prehandler: PreHandler):
         self.content_type_handler = content_type_handler
         self.prehandler = prehandler
 

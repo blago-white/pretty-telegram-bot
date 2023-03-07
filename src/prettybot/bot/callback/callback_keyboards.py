@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from src.conf.pbconfig import STATEMENTS_BY_LANG
-from src.conf.pbconfig import LANG_CODES
+from src.config.pbconfig import STATEMENTS_BY_LANG
+from src.config.pbconfig import LANG_CODES
 
 INLINE_PROFILE_KB = dict()
 INLINE_CHANGE_PROF_DATA_KB = dict()

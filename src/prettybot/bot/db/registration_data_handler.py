@@ -2,13 +2,13 @@ import psycopg2
 
 from src.prettybot.dataclass import dataclass
 from src.prettybot.bot.db import database_assistant
-from src.prettybot.scripts import auxiliary
-from src.conf.recording_stages import *
+from src.prettybot.scripts import supportive
+from src.config.recording_stages import *
 
 
 class RegistrationDataHandler:
 
-    _database_operation_assistant: database_assistant.DatabaseScripts
+    _database_operation_assistant: database_assistant.Database
 
     def __init__(self, database_operation_assistant):
         self._database_operation_assistant = database_operation_assistant
@@ -22,14 +22,12 @@ class RegistrationDataHandler:
             updating_data=False):
 
         if logstage != PHOTO_STAGE:
-            if logstage != SEX_STAGE:
+            if logstage != SEX_STAGE and logtype != TYPE_RECORDING[2]:
                 self._database_operation_assistant.record_user_param(
                     user_id=user_id,
                     name=NAME_COLUMN_BY_LOGSTAGE[logstage],
-                    value="'{}'".format(
-                        message_text.replace("'", "''").replace("/", "")
-                        if type(message_text) == str else message_text
-                    ))
+                    value=supportive.validate_text_to_db(message_text) if type(message_text) == str else message_text
+                    )
 
             if logstage in WISHES_COLUMNS:
                 if logstage == AGE_STAGE:
@@ -72,7 +70,7 @@ class RegistrationDataHandler:
         elif logstage == PHOTO_STAGE:
 
             try:
-                response = self._database_operation_assistant.save_photo(user_id=user_id, file_id=str(message_text),
+                response = self._database_operation_assistant.save_photo_id(user_id=user_id, file_id=str(message_text),
                                                                          upd=updating_data)
 
             except TypeError:

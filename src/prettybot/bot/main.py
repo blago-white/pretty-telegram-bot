@@ -1,11 +1,12 @@
 import aiogram
 
 from src.prettybot.bot import routes
-from src.prettybot.bot.messages import handlers, catchers, tgmessages
+from src.prettybot.bot.messages import catchers, tgmessages
 
 from src.prettybot.bot.db import registration_data_handler
 from src.prettybot.bot.db import large_messages
-from src.prettybot.bot.messages import prehandler
+from src.prettybot.bot.messages.handlers import msghandlers
+from src.prettybot.bot.messages.handlers import prehandler
 
 """
 
@@ -31,36 +32,33 @@ def start_bot(db_scripts, bot_token: str):
     except Exception as exeption:
         raise exeption
 
-    prehandler_ = prehandler.PreHandler(database_assistant=db_scripts)
-
     message_sender = tgmessages.MessageSender(bot=bot)
     message_deleter = tgmessages.MessageDeleter(aiogram_bot=bot)
+
+    prehandler_ = prehandler.PreHandler(database_assistant_=db_scripts,
+                                        message_sender=message_sender)
 
     large_message_renderer = large_messages.LargeMessageRenderer(
         database_operation_assistant=db_scripts,
         message_deleter=message_deleter,
+        large_message_text_generator=large_messages.LargeMessageTextGenerator(database_operation_assistant=db_scripts),
         message_sender=message_sender
-    )
-
-    large_message_generator = large_messages.LargeMessageTextGenerator(
-        database_operation_assistant=db_scripts
     )
 
     registration_data_handler_ = registration_data_handler.RegistrationDataHandler(
         database_operation_assistant=db_scripts
     )
 
-    event_handler = handlers.BotEventHandler(database_operation_assistant=db_scripts,
-                                             bot=bot,
-                                             message_sender=message_sender,
-                                             message_deleter=message_deleter,
-                                             large_message_renderer=large_message_renderer,
-                                             large_message_generator=large_message_generator,
-                                             registration_data_handler_=registration_data_handler_)
+    event_handler = msghandlers.BotEventHandler(database_operation_assistant=db_scripts,
+                                                bot=bot,
+                                                message_sender=message_sender,
+                                                message_deleter=message_deleter,
+                                                large_message_renderer=large_message_renderer,
+                                                registration_data_handler_=registration_data_handler_)
 
-    command_handler = handlers.CommandHandler(bot_event_handler=event_handler)
-    content_type_handler = handlers.ContentTypeHandler(bot_event_handler=event_handler)
-    callback_handler = handlers.CallbackHandler(bot_event_handler=event_handler)
+    command_handler = msghandlers.CommandHandler(bot_event_handler=event_handler)
+    content_type_handler = msghandlers.ContentTypeHandler(bot_event_handler=event_handler)
+    callback_handler = msghandlers.CallbackHandler(bot_event_handler=event_handler)
 
     commands_catcher = catchers.CommandsCatcher(
         commands_handlers=command_handler,

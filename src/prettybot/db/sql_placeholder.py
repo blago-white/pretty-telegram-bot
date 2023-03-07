@@ -1,5 +1,5 @@
 from typing import Union
-from src.conf import pbconfig
+from src.config import pbconfig
 
 
 def fill_sql_template(*args, number_temp: int) -> Union[str, Exception]:

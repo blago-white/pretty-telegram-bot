@@ -1,4 +1,4 @@
-from src.conf.pbconfig import *
+from src.config.pbconfig import *
 
 LENGHT_TYPE_RECORDING_VAL = 3
 LENGHT_STAGE_RECORDING_VAL = 3

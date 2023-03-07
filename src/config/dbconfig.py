@@ -1,4 +1,4 @@
-from src.conf.recording_stages import STAGES_RECORDING, TYPE_RECORDING
+from src.config.recording_stages import STAGES_RECORDING, TYPE_RECORDING
 
 WISHES_COLUMNS_NAME = ('age', 'city', 'sex')
 
