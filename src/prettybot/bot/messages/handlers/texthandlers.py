@@ -12,14 +12,15 @@ from src.config.pbconfig import *
 __all__ = ['handle_message']
 
 
-def handle_age(*args, message_text: str, user_lang_code: str) -> Union[str, dataclass.ResultOperation]:
+def handle_age(*args: tuple[str],
+               message_text: str,
+               user_lang_code: str) -> Union[str, dataclass.ResultOperation]:
 
-    recordtype = [item for item in args if type(item) is str and len(item) == LENGHT_TYPE_RECORDING_VAL][0]
+    recordtype = args[2]
 
     if recordtype in TYPE_RECORDING[:2]:
         try:
             age = int(message_text)
-            print(age, '----')
             if not LOWER_AGE_LIMIT <= age <= UPPER_AGE_LIMIT:
                 return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[
                     user_lang_code].invalid_t_age)
@@ -41,7 +42,6 @@ def handle_age(*args, message_text: str, user_lang_code: str) -> Union[str, data
 
 
 def handle_city(*args, message_text: str, user_lang_code: str):
-
     cities = [item for item in args if type(item) is dict and len(item) == AMOUNT_CITIES][0]
 
     if str.lower(str(message_text)) not in cities:
@@ -88,9 +88,6 @@ def handle_message(
     :param recordstage:
     :return: your statement
     """
-
-    print(args[0], 'stmt', recordstage)
-
     return HANDLE_SCRIPT_BY_RECORDING_STAGE[recordstage](*args, message_text=args[0], user_lang_code=args[1])
 
 

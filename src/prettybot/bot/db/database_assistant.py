@@ -200,7 +200,6 @@ class UserParameters:
     executor: sql_query_executor.Excecutor
 
     def record_user_param(self, user_id: int, name: str, value: Union[str, int, bool]):
-        print(name, value, '-----f')
         try:
             response = self.executor.execute_query(
                 sqlquery=sql_placeholder.fill_sql_template(name, value, user_id, number_temp=10)

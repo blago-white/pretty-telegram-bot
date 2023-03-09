@@ -1,3 +1,5 @@
+import time
+
 import aiogram
 from aiogram.types import ParseMode
 from src.config.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
@@ -84,7 +86,7 @@ class MessageSender:
             self,
             user_id: int,
             description: str = None,
-            user_lang_code: str = None,
+            user_lang_code: str = DEFAULT_LANG,
             markup: aiogram.types.InlineKeyboardMarkup = None,
             parse_mode: aiogram.types.ParseMode = ParseMode.HTML) -> dataclass.ResultOperation:
 
@@ -100,7 +102,7 @@ class MessageSender:
         """
 
         if description is None:
-            description = STATEMENTS_BY_LANG[user_lang_code if user_lang_code else DEFAULT_LANG].fatal_err
+            description = STATEMENTS_BY_LANG[user_lang_code].fatal_err
 
         if markup:
             sending_response = await self.bot.send_message(user_id,
@@ -158,7 +160,6 @@ class MessageDeleter:
             return dataclass.ResultOperation()
 
         except Exception as e:
-            print('! ' + str(e))
             return dataclass.ResultOperation(status=False, description=str(e))
 
 

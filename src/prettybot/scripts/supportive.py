@@ -22,7 +22,6 @@ def search_cities_by_coincidence(string_idx: int, city: str, cities: dict[str], 
     :rtype: list
     """
 
-    print(cities)
     compressed_cities_list = [correct_city.capitalize()
                               for correct_city in cities
                               if correct_city[:string_idx]

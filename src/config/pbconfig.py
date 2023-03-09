@@ -46,8 +46,8 @@ QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING = {
     },
 
     'change_sex': {
-        'ru': STATEMENTS_BY_LANG['ru'].q_sex,
-        'en': STATEMENTS_BY_LANG['en'].q_sex
+        'ru': STATEMENTS_BY_LANG['ru'].q_find_sex,
+        'en': STATEMENTS_BY_LANG['en'].q_find_sex
     },
 }
 

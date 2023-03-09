@@ -36,7 +36,8 @@ def start_bot(db_scripts, bot_token: str):
     message_deleter = tgmessages.MessageDeleter(aiogram_bot=bot)
 
     prehandler_ = prehandler.PreHandler(database_assistant_=db_scripts,
-                                        message_sender=message_sender)
+                                        message_sender=message_sender,
+                                        message_deleter=message_deleter)
 
     large_message_renderer = large_messages.LargeMessageRenderer(
         database_operation_assistant=db_scripts,

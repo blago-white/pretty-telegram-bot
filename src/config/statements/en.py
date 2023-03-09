@@ -22,6 +22,8 @@ q_city = 'wich <b>city</b> wour from?'
 
 q_sex = 'what your <b>sex</b>?'
 
+q_find_sex = 'какой тебе нужен <b>пол</b>?'
+
 q_desc = 'tell me a little <b>about you</b>'
 
 q_photo = u'\u2728 last one, send me your future profile photo'
@@ -73,9 +75,9 @@ change_find_params = u'default search parameters:\n\n' \
                      u'\u231B age: from <code>{}</code> to <code>{}</code>\n' \
                      u'🧬 sex: <code>{}</code>\n'
 
-man = 'i\'m man'
+man = 'man'
 
-woman = 'i\'m woman'
+woman = 'woman'
 
 not_spec_users_warn = 'Not a single user was found for the assigned conditions'
 
