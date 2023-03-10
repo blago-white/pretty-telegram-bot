@@ -1,7 +1,3 @@
-entry_registration = 'first you need to create your resume, <b>enter you age</b>'
-
-acc_send_warn = 'your account did not sending try later'
-
 start_warn = 'send command /start to _bot please'
 
 help = 'if you find a bug, please tell me - @VictorMerinov and you can /restart bot'

@@ -1,6 +1,5 @@
-import time
-
 import aiogram
+
 from aiogram.types import ParseMode
 from src.config.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
 from src.prettybot.dataclass import dataclass
@@ -33,7 +32,6 @@ class MessageSender:
         :rtype ResultOperation class
         :returns: sended message id
         """
-
         try:
             if keyboard:
                 sending_response = await self.bot.send_photo(chat_id=user_id,

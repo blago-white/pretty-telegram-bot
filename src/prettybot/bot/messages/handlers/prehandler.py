@@ -40,10 +40,13 @@ class PreHandler:
 
             if message.chat.type == 'private':
                 try:
-                    await handler_func(message,
-                                       user_id,
-                                       self.database_operation_assistant.get_user_lang_code(user_id=user_id)
-                                       )
+                    start = time.time()
+                    await handler_func(
+                        message,
+                        user_id,
+                        self.database_operation_assistant.get_user_lang_code(user_id=user_id))
+
+                    print(time.time() - start, message.text)
 
                 except Exception as e:
                     print(e)

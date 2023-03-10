@@ -429,13 +429,6 @@ async def full_fill(cities, profile_info, result_user_names, idx, conn):
 
 async def main():
     global names
-
-    conn = sqlexecutor.DatabaseExecutor(
-        NameDB='messangerdb',
-        password='270407020104$sPg@POST-kont_~lp',
-        user='postgres'
-    )
-
     shuffle_(names)
     keys = list(names.keys())
     result_user_names = list()
@@ -471,7 +464,6 @@ async def main():
                                                    idx=idx,
                                                    conn=conn)))
 
-    print(111)
     await asyncio.gather(*tasks)
 
     conn.exit()
