@@ -1,3 +1,4 @@
+import time
 from typing import Union
 import asyncio
 import aiogram.types
@@ -6,6 +7,7 @@ from src.prettybot.bot.db import database_assistant
 from src.prettybot.dataclass import dataclass
 from src.prettybot.bot.messages import tgmessages
 from src.prettybot.scripts import supportive
+from src.prettybot.bot.asyncioscripts import coroutine_executor
 from src.prettybot.bot.callback.callback_keyboards import *
 from src.config.pbconfig import *
 
@@ -97,25 +99,21 @@ class LargeMessageRenderer:
             table_name='photos'
         ).object[0][1]
 
-        tasks = [
-            asyncio.create_task(self.delete_large_message(user_id=user_id, type_message=msgtype))
-            for msgtype in (PROFILE_MESSAGE_TYPE, QUESTION_MESSAGE_TYPE)
-        ]
+        profile_body = self._large_message_text_generator.generate_profile_body(user_id=user_id,
+                                                                                user_lang_code=user_lang_code)
 
-        tasks.append(asyncio.create_task(
-            self._message_sender.send_photo(
-                user_id=user_id,
-                photo_id=profile_photo_id,
-                description=self._large_message_text_generator.generate_profile_body(user_id=user_id,
-                                                                                     user_lang_code=user_lang_code),
-                keyboard=INLINE_PROFILE_KB[user_lang_code]
-            )
-        ))
+        sending_result = await self._message_sender.send_photo(user_id=user_id,
+                                                               photo_id=profile_photo_id,
+                                                               description=profile_body,
+                                                               keyboard=INLINE_PROFILE_KB[user_lang_code]
+                                                               )
 
-        sending_result = await asyncio.gather(*tasks)
+        await coroutine_executor.execute_coros(
+            *[self.delete_large_message(user_id=user_id, type_message=msgtype)
+              for msgtype in (PROFILE_MESSAGE_TYPE, QUESTION_MESSAGE_TYPE)])
 
         self._database_operation_assistant.add_main_message_to_db(user_id=user_id,
-                                                                  id_message=sending_result[-1].object,
+                                                                  id_message=sending_result.object,
                                                                   type_message=PROFILE_MESSAGE_TYPE)
 
     async def render_finding_message(
@@ -130,36 +128,29 @@ class LargeMessageRenderer:
         response_sending = await self._message_sender.send(
             user_id=user_id,
             description=STATEMENTS_BY_LANG[user_lang_code].clarify,
-            markup=INLINE_MODE_FINDING_KB[user_lang_code]
-        )
+            markup=INLINE_MODE_FINDING_KB[user_lang_code]),
 
-        await self.delete_large_message(
-            user_id=user_id,
-            type_message=QUESTION_MESSAGE_TYPE
-        )
+        await self.delete_large_message(user_id=user_id, type_message=QUESTION_MESSAGE_TYPE)
 
         self._database_operation_assistant.add_main_message_to_db(
             user_id=user_id,
-            id_message=response_sending.object,
+            id_message=response_sending[0].object,
             type_message=QUESTION_MESSAGE_TYPE
         )
 
     async def render_clarify_message(
             self, user_id,
             user_lang_code: str) -> None:
-        sending_response: dataclass.ResultOperation = await self._message_sender.send(
+        fp_body = self._large_message_text_generator.generate_finding_params_message(
             user_id=user_id,
+            user_lang_code=user_lang_code
+        )
 
-            description=self._large_message_text_generator.generate_finding_params_message(
-                user_id=user_id,
-                user_lang_code=user_lang_code
-            ),
+        sending_response = await self._message_sender.send(user_id=user_id,
+                                                           description=fp_body,
+                                                           markup=INLINE_CHANGE_PARAMS_FIND_KB[user_lang_code])
 
-            markup=INLINE_CHANGE_PARAMS_FIND_KB[
-                user_lang_code])
-
-        await self.delete_large_message(user_id=user_id,
-                                        type_message=QUESTION_MESSAGE_TYPE)
+        await self.delete_large_message(user_id=user_id, type_message=QUESTION_MESSAGE_TYPE)
 
         self._database_operation_assistant.add_main_message_to_db(user_id=user_id,
                                                                   id_message=sending_response.object,
@@ -172,13 +163,11 @@ class LargeMessageRenderer:
             delay_before_deleting: int) -> None:
         sending_response = await self._message_sender.send(
             user_id=user_id,
-            description=description
-        )
+            description=description)
 
         await self._message_deleter.delete_message(user_id=user_id, idmes=user_message_id)
         await supportive.start_delay(delay_before_deleting)
-        await self._message_deleter.delete_message(user_id=user_id,
-                                                   idmes=sending_response.object)
+        await self._message_deleter.delete_message(user_id=user_id, idmes=sending_response.object)
 
     async def render_question_message(
             self, user_id: int,
@@ -188,11 +177,10 @@ class LargeMessageRenderer:
         sending_response = await (self._message_sender.send_except_message
                                   if with_warn else
                                   self._message_sender.send)(
-            user_id=user_id, description=description, markup=markup
-        )
+            user_id=user_id, description=description, markup=markup)
 
-        await self.delete_large_message(user_id=user_id, type_message=QUESTION_MESSAGE_TYPE)
-        await self.delete_large_message(user_id=user_id, type_message=PROFILE_MESSAGE_TYPE)
+        await coroutine_executor.execute_coros(*[self.delete_large_message(user_id=user_id, type_message=message_type)
+                                                 for message_type in (QUESTION_MESSAGE_TYPE, PROFILE_MESSAGE_TYPE)])
 
         self._database_operation_assistant.add_main_message_to_db(user_id=user_id,
                                                                   id_message=sending_response.object,
