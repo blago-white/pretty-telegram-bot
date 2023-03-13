@@ -30,6 +30,10 @@ btn_change = u'\u270F change info'
 
 q_age_range = 'enter new age limits for the people you are looking for, min - 10; max - 99'
 
+invalid_v_range_age = 'new age limits must contain <b>4</b> digits'
+
+invalid_t_range_age = 'new age range must contain numbers, <b>4</b> pieces!'
+
 btn_creator = '🤙 creator'
 
 btn_start_find = '🌐 find people'

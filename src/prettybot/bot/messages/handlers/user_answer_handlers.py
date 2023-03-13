@@ -1,10 +1,8 @@
-import re
 from typing import Union
 
 from src.prettybot.dataclass import dataclass
-from src.prettybot.scripts import supportive
-from src.prettybot.bot.db import large_messages
-from src.config.recording_stages import TYPE_RECORDING, LENGHT_TYPE_RECORDING_VAL
+from src.prettybot.bot.minorscripts import supportive
+from src.config.recording_stages import TYPE_RECORDING
 from src.config.dbconfig import AMOUNT_CITIES
 
 from src.config.pbconfig import *
@@ -15,9 +13,7 @@ __all__ = ['handle_message']
 def handle_age(*args: tuple[str],
                message_text: str,
                user_lang_code: str) -> Union[str, dataclass.ResultOperation]:
-
     recordtype = args[2]
-
     if recordtype in TYPE_RECORDING[:2]:
         try:
             age = int(message_text)
@@ -36,9 +32,14 @@ def handle_age(*args: tuple[str],
             numbers = [i for i in message_text if i.isdigit()]
 
             if len(numbers) < 4:
-                return dataclass.ResultOperation(status=False)
+                return dataclass.ResultOperation(status=False,
+                                                 object=STATEMENTS_BY_LANG[user_lang_code].invalid_v_range_age)
 
             return dataclass.ResultOperation(status=True)
+
+        else:
+            return dataclass.ResultOperation(status=False,
+                                             object=STATEMENTS_BY_LANG[user_lang_code].invalid_t_range_age)
 
 
 def handle_city(*args, message_text: str, user_lang_code: str):
@@ -60,6 +61,10 @@ def handle_city(*args, message_text: str, user_lang_code: str):
     return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_sex)
 
 
+def handle_sex(*args, **kwargs):
+    return dataclass.ResultOperation(status=False)
+
+
 def handle_description(*_, message_text: str, user_lang_code: str):
     if len(message_text) > MAX_LEN_DESCRIPTION:
         return dataclass.ResultOperation(status=False,
@@ -70,8 +75,9 @@ def handle_description(*_, message_text: str, user_lang_code: str):
     return dataclass.ResultOperation(status=True, object=STATEMENTS_BY_LANG[user_lang_code].q_photo)
 
 
-def handle_photo(*_, message_text: str, user_lang_code: str):
-    return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_t_photo)
+def handle_photo(*_, **kwargs):
+    return dataclass.ResultOperation(status=False,
+                                     object=STATEMENTS_BY_LANG[kwargs.get('user_lang_code')].invalid_t_photo)
 
 
 def handle_message(
@@ -94,6 +100,7 @@ def handle_message(
 HANDLE_SCRIPT_BY_RECORDING_STAGE = {
     'age': handle_age,
     'cty': handle_city,
+    'sex': handle_sex,
     'dsc': handle_description,
     'pht': handle_photo,
 }

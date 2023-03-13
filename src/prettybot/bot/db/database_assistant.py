@@ -8,7 +8,7 @@ from src.prettybot.dataclass import dataclass
 from src.prettybot.db import sql_placeholder
 from src.prettybot.db import sql_query_executor
 from src.prettybot.db import database_connection
-from src.prettybot.scripts import supportive
+from src.prettybot.bot.minorscripts import supportive
 
 from src.config.dbconfig import *
 from src.config.recording_stages import *
@@ -38,38 +38,22 @@ class UserRecordingCondition:
 
     def get_recording_condition(self, user_id: int) -> dataclass.ResultOperation:
         response = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=1))
-
-        if type(response) is BaseException:
-            return dataclass.ResultOperation(False, 'database error')
-
         if not len(response):
             return dataclass.ResultOperation(description='not info')
 
         return dataclass.ResultOperation(object=response[0])
 
-    def change_recording_condition(
-            self, user_id: int,
-            logtype=None,
-            logstage=None,
-            stop_logging: bool = None,
-            increase: bool = False):
+    def stop_recording(self, user_id: int) -> None:
+        self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
 
-        if stop_logging:
-            response = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
-            if type(response) is BaseException:
-                return dataclass.ResultOperation(status=False, description='_postgre_conn error 1')
+    def increase_recording_stage(self, user_id: int, logtype: str, logstage: str) -> None:
+        self.executor.execute_query(sql_placeholder.fill_sql_template(logtype,
+                                                                      supportive.increase_stage_recording(logstage),
+                                                                      user_id,
+                                                                      number_temp=4))
 
-            return dataclass.ResultOperation()
-
-        response = self.executor.execute_query(sql_placeholder.fill_sql_template(
-            logtype,
-            logstage if not increase else supportive.increase_stage_recording(logstage),
-            user_id, number_temp=4))
-
-        if type(response) is BaseException:
-            dataclass.ResultOperation(status=False, description='_postgre_conn error 2')
-
-        return dataclass.ResultOperation()
+    def start_recording(self, user_id: int, logtype: str, logstage: str) -> None:
+        self.executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id, number_temp=4))
 
 
 class UserChattingCondition:
@@ -85,12 +69,20 @@ class UserChattingCondition:
             sql_placeholder.fill_sql_template(user_id, number_temp=23)
         )
 
-        return dataclass.ResultOperation(status=False if type(data) is BaseException else True,
-                                         object=data if type(data) is BaseException else data[0][0])
+        if type(data) is list and len(data):
+            data = data[0][0]
 
-    def change_chatting_condition(self, user_id: int, new_condition: bool) -> None:
+        return dataclass.ResultOperation(status=False if type(data) is BaseException else True,
+                                         object=data)
+
+    def start_chatting(self, user_id: int) -> None:
         self.executor.execute_query(
-            sql_placeholder.fill_sql_template(bool(new_condition), int(user_id), number_temp=24)
+            sql_placeholder.fill_sql_template(True, int(user_id), number_temp=24)
+        )
+
+    def stop_chatting(self, user_id: int) -> None:
+        self.executor.execute_query(
+            sql_placeholder.fill_sql_template(False, int(user_id), number_temp=24)
         )
 
 
@@ -98,40 +90,34 @@ class UserBuffer:
     executor: sql_query_executor.Excecutor
 
     def get_user_buffer_status(self, user_id: int):
-        from_bufer_data = self.executor.execute_query(sqlquery=sql_placeholder.fill_sql_template(
-            'users_searching_buffer',
-            user_id,
-            number_temp=19))
+        from_bufer_data = self.executor.execute_query(
+            sqlquery=sql_placeholder.fill_sql_template('users_searching_buffer', user_id, number_temp=19)
+        )
 
-        return dataclass.ResultOperation(
-            status=True,
-            object=True if from_bufer_data else False)
+        return dataclass.ResultOperation(status=True, object=True if from_bufer_data else False)
+
+    def buffering_user_with_params(self, user_id: int, date_message: datetime.datetime):
+        self.executor.execute_query(
+            sqlquery=sql_placeholder.fill_sql_template(user_id, date_message, True, number_temp=27)
+        )
+
+    def buffering_user_without_params(self, user_id: int, date_message: datetime.datetime):
+        self.executor.execute_query(
+            sqlquery=sql_placeholder.fill_sql_template(user_id, date_message, False, number_temp=27)
+        )
 
     def del_user_from_buffer(self, user_id: int):
-        self.executor.execute_query(
-            sqlquery=sql_placeholder.fill_sql_template(user_id, number_temp=26)
-        )
-
-    def add_user_to_buffer(self, user_id: int, date_message: datetime.datetime, specified_search: bool):
-        self.executor.execute_query(
-            sqlquery=sql_placeholder.fill_sql_template(
-                user_id,
-                date_message,
-                specified_search,
-                number_temp=27)
-        )
+        self.executor.execute_query(sqlquery=sql_placeholder.fill_sql_template(user_id, number_temp=26))
 
 
 class UserLanguage:
     executor: sql_query_executor.Excecutor
 
     def get_user_lang_code(self, user_id: int) -> str:
-        lang_response = self.get_user_data_by_table(user_id=user_id, table_name='users')
-        if lang_response.status and lang_response.object:
-            if lang_response.object[-1][-1]:
-                return lang_response.object[-1][-1]
-
-        return DEFAULT_LANG
+        try:
+            return self.get_user_data_by_table(user_id=user_id, table_name='users').object[-1][-1]
+        except IndexError:
+            return DEFAULT_LANG
 
     def change_user_lang(self, user_id: int, lang_code: str):
         self.executor.execute_query(sql_placeholder.fill_sql_template(lang_code, user_id, number_temp=21))
@@ -191,7 +177,10 @@ class UserRecords:
         else:
             return dataclass.ResultOperation('not ann')
 
-    def delete_user_records(self, user_id):
+    def check_user_exists(self, user_id: int):
+        self.executor.execute_query()
+
+    def delete_user_records(self, user_id: int):
         for dbname in TABLES:
             self.executor.execute_query(sql_placeholder.fill_sql_template(dbname, user_id, number_temp=20))
 
@@ -199,10 +188,10 @@ class UserRecords:
 class UserParameters:
     executor: sql_query_executor.Excecutor
 
-    def record_user_param(self, user_id: int, name: str, value: Union[str, int, bool]):
+    def record_user_param(self, user_id: int, name_param: str, value_param: Union[str, int, bool]):
         try:
             response = self.executor.execute_query(
-                sqlquery=sql_placeholder.fill_sql_template(name, value, user_id, number_temp=10)
+                sqlquery=sql_placeholder.fill_sql_template(name_param, value_param, user_id, number_temp=10)
             )
 
             return dataclass.ResultOperation(
@@ -237,16 +226,14 @@ class UserParameters:
 class UserPhotos:
     executor: sql_query_executor.Excecutor
 
-    def save_photo_id(self, user_id: int, file_id, upd=False):
-        if not upd:
-            response = self.executor.execute_query(
-                sql_placeholder.fill_sql_template(user_id, file_id, number_temp=5))
+    def get_photo_id(self, user_id: int):
+        return self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=28))[0][0]
 
-        else:
-            response = self.executor.execute_query(
-                sql_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
+    def update_photo_id(self, user_id: int, file_id: str):
+        self.executor.execute_query(sql_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
 
-        return dataclass.ResultOperation(object=response)
+    def save_photo_id(self, user_id: int, file_id: str):
+        self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, file_id, number_temp=5))
 
 
 class UserWishes:
@@ -260,54 +247,42 @@ class UserWishes:
             object=result
         )
 
+    def record_new_wish_param(self, user_id: int, name_param: str, value_param: Union[str, int, bool]):
+        if name_param in COLUMNS_WITH_WISHES:
+            self.executor.execute_query(
+                sqlquery=sql_placeholder.fill_sql_template(name_param, value_param, user_id, number_temp=10)
+            )
+
 
 class UserMessages:
     executor: sql_query_executor.Excecutor
 
-    def get_main_message(self, user_id: int, type_message: int):
-        if not (user_id or type_message):
+    def get_main_message(self, user_id: int):
+        if not user_id:
             return dataclass.ResultOperation(status=False, description='not full args')
 
-        id_msg = self.executor.execute_query(
-            sql_placeholder.fill_sql_template(user_id, type_message, number_temp=16))
+        id_message = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=16))
 
-        if type(id_msg) is BaseException:
-            return dataclass.ResultOperation(status=False, object=id_msg)
+        if not id_message:
+            return dataclass.ResultOperation()
 
-        if not id_msg:
-            return dataclass.ResultOperation(status=True, description='mes not found')
+        return dataclass.ResultOperation(object=int(id_message[0][0]))
 
-        return dataclass.ResultOperation(object=int(id_msg[0][0]))
-
-    def add_main_message_to_db(self, user_id: int, id_message: int, type_message: int):
-
-        if not (user_id or id_message or type_message) or type_message not in TYPES_MAIN_MESSAGES:
+    def add_main_message_to_db(self, user_id: int, id_message: int):
+        if not (user_id or id_message):
             return dataclass.ResultOperation(status=False, description='args')
-
-        if self.get_main_message(user_id=user_id, type_message=type_message):
-            self.executor.execute_query(sql_placeholder.fill_sql_template(
-                user_id,
-                type_message,
-                number_temp=15
-            ))
 
         self.executor.execute_query(sql_placeholder.fill_sql_template(user_id,
                                                                       id_message,
-                                                                      int(type_message),
                                                                       number_temp=14))
 
         return dataclass.ResultOperation()
 
-    def del_main_message_from_db(self, user_id, type_message):
-        if not (user_id or type_message):
+    def del_main_message_from_db(self, user_id):
+        if not user_id:
             return dataclass.ResultOperation(status=False, description='not full args')
 
-        response = self.executor.execute_query(
-            sql_placeholder.fill_sql_template(user_id, type_message, number_temp=15)
-        )
-
-        if type(response) is BaseException:
-            return dataclass.ResultOperation(status=False, description='deleting error')
+        self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=15))
 
         return dataclass.ResultOperation()
 
@@ -321,6 +296,7 @@ class Database(UserRecordingCondition,
                UserPhotos,
                UserWishes,
                UserMessages):
+
     all_cities: dict[str]
     executor: sql_query_executor.Excecutor
     _postgre_connection: database_connection

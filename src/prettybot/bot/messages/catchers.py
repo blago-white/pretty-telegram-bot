@@ -1,7 +1,7 @@
 import aiogram
 
 from src.prettybot.bot.messages.handlers import msghandlers
-from src.prettybot.bot.messages.handlers.prehandler import PreHandler
+from src.prettybot.bot.messages.handlers.prehandler import MessagePreHandler
 
 
 class CallbackCatcher:
@@ -11,45 +11,49 @@ class CallbackCatcher:
         self.callback_handler = callback_handler
 
     async def callback(self, callback_query: aiogram.types.CallbackQuery):
-        await self.callback_handler.inline_keyboard_callback(
+        await self.callback_handler.handle_callback(
             callback_query=callback_query
         )
 
 
-class CommandsCatcher:
-    commands_handler: msghandlers.CommandHandler
-    prehandler: PreHandler
+class MessageCatcher:
+    content_type_handler: msghandlers.ContentTypesHandler
+    commands_handler: msghandlers.CommandsHandler
+    prehandler: MessagePreHandler
+    command_handlers_routes: dict
+    content_type_handlers_routes: dict
 
-    def __init__(self, commands_handlers: msghandlers.CommandHandler, prehandler: PreHandler):
-        self.commands_handler = commands_handlers
-        self.prehandler = prehandler
-
-    async def start(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.commands_handler.start, message)
-
-    async def help(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.commands_handler.help, message)
-
-    async def restart(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.commands_handler.restart, message)
-
-    async def change_lang(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.commands_handler.change_lang, message)
-
-    async def stop_chatting(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.commands_handler.stop_chatting, message)
-
-
-class ContentTypeCatcher:
-    content_type_handler: msghandlers.ContentTypeHandler
-    prehandler: PreHandler
-
-    def __init__(self, content_type_handler: msghandlers.ContentTypeHandler, prehandler: PreHandler):
+    def __init__(
+            self, content_type_handler: msghandlers.ContentTypesHandler,
+            commands_handler: msghandlers.CommandsHandler,
+            prehandler: MessagePreHandler,
+            command_handlers_routes: dict,
+            content_type_handlers_routes=dict):
         self.content_type_handler = content_type_handler
+        self.commands_handler = commands_handler
         self.prehandler = prehandler
+        self.command_handlers_routes = command_handlers_routes
+        self.content_type_handlers_routes = content_type_handlers_routes
 
-    async def text(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.content_type_handler.text, message)
+    async def _start_handling_command(self, message: aiogram.types.Message, command_name: str):
+        try:
+            await self.prehandler.prehandle(
+                handler_func=self.command_handlers_routes[message.text[1:]],
+                message=message
+            )
+        except KeyError:
+            await self._start_handling_by_content_type(message=message)
 
-    async def photo(self, message: aiogram.types.Message):
-        await self.prehandler.prehandle(self.content_type_handler.photo, message)
+    async def _start_handling_by_content_type(self, message: aiogram.types.Message):
+        await self.prehandler.prehandle(
+                handler_func=self.content_type_handlers_routes[message.content_type],
+                message=message
+            )
+
+    async def catche_message(self, message: aiogram.types.Message):
+        if message.entities and message.entities[0].type == 'bot_command':
+            command_name = message.text[1:]
+            await self._start_handling_command(message=message, command_name=command_name)
+
+        else:
+            await self._start_handling_by_content_type(message=message)

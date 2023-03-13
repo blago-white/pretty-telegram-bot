@@ -11,9 +11,9 @@ templates = {1: "SELECT recording, recording_type, recording_stage FROM states W
              11: "UPDATE users_info SET age_wish='{}'::int4range WHERE telegram_id={};",
              12: "SELECT * FROM users_info WHERE age_wish={} AND city_wish={} AND sex_wish={}",
              13: "INSERT INTO cities VALUES ('{}', '{}', {})",
-             14: "INSERT INTO main_messages VALUES ({}, {}, {})",
-             15: "DELETE FROM main_messages WHERE telegram_id={} AND message_type={}",
-             16: "SELECT message_id FROM main_messages WHERE telegram_id={} AND message_type={}",
+             14: "INSERT INTO main_messages VALUES ({}, {}) ON CONFLICT DO NOTHING",
+             15: "DELETE FROM main_messages WHERE telegram_id={}",
+             16: "SELECT message_id FROM main_messages WHERE telegram_id={}",
              17: "SELECT * FROM cities ORDER BY population DESC;",
              18: "SELECT users_info.telegram_id, users_info.age, users_info.city, users_info.sex, "
                  "users_searching_buffer.specified, users_searching_buffer.buffering_time FROM users_info "
@@ -37,5 +37,6 @@ templates = {1: "SELECT recording, recording_type, recording_stage FROM states W
                  "ORDER BY users_searching_buffer.buffering_time DESC "
                  "LIMIT 1;",
              26: "DELETE FROM users_searching_buffer WHERE telegram_id={};",
-             27: "INSERT INTO users_searching_buffer VALUES ({}, '{}', {});"
+             27: "INSERT INTO users_searching_buffer VALUES ({}, '{}', {});",
+             28: "SELECT photo_id FROM photos WHERE telegram_id={};"
              }

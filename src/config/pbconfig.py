@@ -17,22 +17,25 @@ MAX_LEN_SAMPLING_CITIES = 15
 
 MEDIUM_LEN_SAMPLING_CITIES = 4
 
-PROFILE_MESSAGE_TYPE = 0
-
-QUESTION_MESSAGE_TYPE = 1
-
-START_MESSAGE_TYPE = 2
-
-TYPES_MAIN_MESSAGES = (PROFILE_MESSAGE_TYPE, QUESTION_MESSAGE_TYPE, START_MESSAGE_TYPE)
-
 """
 0 - profile
 1 - question message
 2 - first message
 """
 
+BOT_COMMANDS = {'start': ('start', ),
+                'help': ('help', ),
+                'restart': ('restart', ),
+                'lang': ('en', 'ru'),
+                'end': ('end', )}
+
+BOT_CONTENT_TYPES = {'photo': ('photo', ),
+                     'text': ('text', )}
+
 LANG_CODES = dict(en_lang_select='en',
                   ru_lang_select='ru')
+
+DEFAULT_AGE_RANGE_OFFSET = 5
 
 QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING = {
     'change_age': {
@@ -89,6 +92,7 @@ LONG_DELAY = 10
 MEDIUM_DELAY = 5
 
 LOWER_AGE_LIMIT = 10
+
 UPPER_AGE_LIMIT = 99
 
 MAX_LEN_DESCRIPTION = 350

@@ -20,7 +20,7 @@ class Excecutor:
 
             except Exception as exception:
                 print(exception)
-                return BaseException('{}'.format(exception))
+                return BaseException(str(exception))
 
             try:
                 return connection.fetchall()

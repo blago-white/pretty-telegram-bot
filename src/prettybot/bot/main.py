@@ -1,12 +1,13 @@
 import aiogram
 
-from src.prettybot.bot import routes
-from src.prettybot.bot.messages import catchers, tgmessages
-
-from src.prettybot.bot.db import registration_data_handler
-from src.prettybot.bot.db import large_messages
+from src.prettybot.bot import routes_registrator
+from src.prettybot.bot.messages import catchers, chat_interaction
+from src.prettybot.bot.db.registration import registration_data_handler
+from src.prettybot.bot.messages.botmessages import botmessages
 from src.prettybot.bot.messages.handlers import msghandlers
 from src.prettybot.bot.messages.handlers import prehandler
+from src.prettybot.bot import handlers_routes
+from src.config import pbconfig
 
 """
 
@@ -32,21 +33,21 @@ def start_bot(db_scripts, bot_token: str):
     except Exception as exeption:
         raise exeption
 
-    message_sender = tgmessages.MessageSender(bot=bot)
-    message_deleter = tgmessages.MessageDeleter(aiogram_bot=bot)
+    message_sender = chat_interaction.MessageSender(bot=bot)
+    message_deleter = chat_interaction.MessageDeleter(aiogram_bot=bot)
 
-    prehandler_ = prehandler.PreHandler(database_assistant_=db_scripts,
-                                        message_sender=message_sender,
-                                        message_deleter=message_deleter)
+    prehandler_ = prehandler.MessagePreHandler(database_assistant_=db_scripts,
+                                               message_sender=message_sender,
+                                               message_deleter=message_deleter)
 
-    large_message_renderer = large_messages.LargeMessageRenderer(
+    large_message_renderer = botmessages.MainMessagesRenderer(
         database_operation_assistant=db_scripts,
         message_deleter=message_deleter,
-        large_message_text_generator=large_messages.LargeMessageTextGenerator(database_operation_assistant=db_scripts),
+        main_message_text_generator=botmessages.MainMessageTextGenerator(database_operation_assistant=db_scripts),
         message_sender=message_sender
     )
 
-    registration_data_handler_ = registration_data_handler.RegistrationDataHandler(
+    registration_data_handler_ = registration_data_handler.RegistrationParamsHandler(
         database_operation_assistant=db_scripts
     )
 
@@ -57,27 +58,31 @@ def start_bot(db_scripts, bot_token: str):
                                                 large_message_renderer=large_message_renderer,
                                                 registration_data_handler_=registration_data_handler_)
 
-    command_handler = msghandlers.CommandHandler(bot_event_handler=event_handler)
-    content_type_handler = msghandlers.ContentTypeHandler(bot_event_handler=event_handler)
+    command_handler = msghandlers.CommandsHandler(bot_event_handler=event_handler)
+    content_type_handler = msghandlers.ContentTypesHandler(bot_event_handler=event_handler)
     callback_handler = msghandlers.CallbackHandler(bot_event_handler=event_handler)
 
-    commands_catcher = catchers.CommandsCatcher(
-        commands_handlers=command_handler,
-        prehandler=prehandler_
+    routes = handlers_routes.get_handlers_routes(
+            bot_commands_handler=command_handler,
+            bot_content_types_handler=content_type_handler
     )
 
-    content_type_catcher = catchers.ContentTypeCatcher(
+    message_catcher = catchers.MessageCatcher(
+        commands_handler=command_handler,
         content_type_handler=content_type_handler,
-        prehandler=prehandler_
+        prehandler=prehandler_,
+        command_handlers_routes=routes['command_handlers_routes'],
+        content_type_handlers_routes=routes['content_types_routes']
     )
 
     callback_catcher = catchers.CallbackCatcher(
         callback_handler=callback_handler
     )
 
-    routes.registrate_handlers(dispatcher=dp,
-                               commands_catcher=commands_catcher,
-                               content_types_catcher=content_type_catcher,
-                               callback_catcher=callback_catcher)
+    routes_registrator.registrate_handlers(dispatcher=dp,
+                                           message_catcher=message_catcher,
+                                           callback_catcher=callback_catcher,
+                                           tracked_commands=pbconfig.BOT_COMMANDS,
+                                           tracked_content_types=pbconfig.BOT_CONTENT_TYPES)
 
     start_dispatcher(dp=dp)
