@@ -1,10 +1,11 @@
-from src.prettybot.bot.messages.handlers import msghandlers
+from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
+from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
 from src.config import pbconfig
 
 
 def get_handlers_routes(
-        bot_commands_handler: msghandlers.CommandsHandler,
-        bot_content_types_handler: msghandlers.ContentTypesHandler):
+        bot_commands_handler: command_handlers.CommandsHandler,
+        bot_content_types_handler: content_type_handlers.ContentTypesHandler):
     command_handlers_routes = {
         'start': bot_commands_handler.handle_start,
         'help': bot_commands_handler.handle_help,

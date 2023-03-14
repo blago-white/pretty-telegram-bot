@@ -8,7 +8,7 @@ def registrate_handlers(dispatcher: aiogram.dispatcher,
                         tracked_commands: dict,
                         tracked_content_types: dict) -> None:
 
-    dispatcher.register_callback_query_handler(callback_catcher.callback, lambda call: call.data)
+    dispatcher.register_callback_query_handler(callback_catcher.handle_callback, lambda call: call.data)
 
     for command in tracked_commands.values():
         dispatcher.register_message_handler(message_catcher.catche_message, commands=[*command])

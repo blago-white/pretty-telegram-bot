@@ -39,11 +39,10 @@ def search_cities_by_coincidence(string_idx: int, city: str, cities: dict[str], 
 # 3
 def get_similar_cities(city: str, cities: dict) -> list:
     for string_idx in range(1, len(city) + 1):
-        result_list = search_cities_by_coincidence(
-            string_idx=string_idx,
-            city=city,
-            cities=cities,
-            length_border=MEDIUM_LEN_SAMPLING_CITIES)
+        result_list = search_cities_by_coincidence(string_idx=string_idx,
+                                                   city=city,
+                                                   cities=cities,
+                                                   length_border=MEDIUM_LEN_SAMPLING_CITIES)
 
         if not result_list:
             return result_list if string_idx == 1 else previous_cities
@@ -80,10 +79,10 @@ def increase_stage_recording(stage_recording: str) -> str:
 
 # 2
 def get_inline_keyboard_by_stage(recordstage: str, recordtype: str) -> dict:
-    if recordtype == TYPE_RECORDING[0] and recordstage == STAGES_RECORDING[1]:
+    if recordtype == TYPE_RECORDING[0] and recordstage in STAGES_RECORDING[1:3]:
         return INLINE_SEX_KB
 
-    elif recordtype in TYPE_RECORDING[1:] and recordstage == STAGES_RECORDING[2]:
+    elif recordtype == TYPE_RECORDING[2] and recordstage == STAGES_RECORDING[2]:
         return INLINE_SEX_KB
 
     return INLINE_EMPTY_KB

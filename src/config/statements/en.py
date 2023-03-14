@@ -18,7 +18,7 @@ q_city = 'wich <b>city</b> wour from?'
 
 q_sex = 'what your <b>sex</b>?'
 
-q_find_sex = 'какой тебе нужен <b>пол</b>?'
+q_find_sex = 'What kind of <b>sex</b> do you want?'
 
 q_desc = 'tell me a little <b>about you</b>'
 

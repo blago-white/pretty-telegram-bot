@@ -1,5 +1,4 @@
 import datetime
-
 import psycopg2.extras
 from typing import Union
 
@@ -36,7 +35,7 @@ def get_cities(executor) -> dataclass.ResultOperation:
 class UserRecordingCondition:
     executor: sql_query_executor.Excecutor
 
-    def get_recording_condition(self, user_id: int) -> dataclass.ResultOperation:
+    def get_recording_condition(self, user_id: int) -> Union[dataclass.ResultOperation, list[tuple]]:
         response = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=1))
         if not len(response):
             return dataclass.ResultOperation(description='not info')
@@ -46,14 +45,21 @@ class UserRecordingCondition:
     def stop_recording(self, user_id: int) -> None:
         self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=3))
 
-    def increase_recording_stage(self, user_id: int, logtype: str, logstage: str) -> None:
-        self.executor.execute_query(sql_placeholder.fill_sql_template(logtype,
-                                                                      supportive.increase_stage_recording(logstage),
+    def increase_recording_stage(self, user_id: int) -> None:
+        recording, record_type, record_stage = self.get_recording_condition(user_id=user_id).object
+
+        if recording:
+            self.executor.execute_query(sql_placeholder.fill_sql_template(record_type,
+                                                                          supportive.increase_stage_recording(
+                                                                              record_stage),
+                                                                          user_id,
+                                                                          number_temp=4))
+
+    def start_recording(self, user_id: int, record_type: str, record_stage: str) -> None:
+        self.executor.execute_query(sql_placeholder.fill_sql_template(record_type,
+                                                                      record_stage,
                                                                       user_id,
                                                                       number_temp=4))
-
-    def start_recording(self, user_id: int, logtype: str, logstage: str) -> None:
-        self.executor.execute_query(sql_placeholder.fill_sql_template(logtype, logstage, user_id, number_temp=4))
 
 
 class UserChattingCondition:
@@ -128,19 +134,13 @@ class UserRecords:
 
     def add_new_user(self, user_id, fname, lname, telegname, date_message):
         try:
-            response1 = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id,
-                                                                                      fname,
-                                                                                      lname,
-                                                                                      telegname,
-                                                                                      date_message,
-                                                                                      number_temp=7))
+            response1 = self.executor.execute_query(sql_placeholder.fill_sql_template(
+                user_id, fname, lname, telegname, date_message, number_temp=7)
+            )
 
-            response2 = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id,
-                                                                                      True,
-                                                                                      DEFAULT_LOGGING_TYPE,
-                                                                                      DEFAULT_LOGGING_STAGE,
-                                                                                      False,
-                                                                                      number_temp=8))
+            response2 = self.executor.execute_query(sql_placeholder.fill_sql_template(
+                user_id, True, DEFAULT_RECORD_TYPE, DEFAULT_RECORD_STAGE, False, number_temp=8)
+            )
 
             response3 = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=9))
 
@@ -153,24 +153,23 @@ class UserRecords:
         return dataclass.ResultOperation()
 
     def get_user_records(self, user_id: int):
-        if self.get_user_data_by_table(user_id=user_id, table_name='users') is not BaseException:
-
-            results = [self.get_user_data_by_table(user_id=user_id, table_name=name) for name in
+        if self.get_user_data_by_table(user_id=user_id, table_name='users'):
+            fetch_results = [self.get_user_data_by_table(user_id=user_id, table_name=name) for name in
                        USER_DATA_TABLES]
 
-            for r in results:
+            for r in fetch_results:
                 if type(r) is BaseException:
                     return dataclass.ResultOperation(status=False, description='database error')
 
-            results = [result.object for result in results]
+            fetch_results = [result.object for result in fetch_results]
 
-            for idx, dbdata in enumerate(results):
+            for idx, dbdata in enumerate(fetch_results):
                 if type(dbdata) is not BaseException and len(dbdata):
-                    results[idx] = results[idx][0]
+                    fetch_results[idx] = fetch_results[idx][0]
 
             result = {}
             for idx, table_name in enumerate(USER_DATA_TABLES):
-                result.update({table_name: results[idx]})
+                result.update({table_name: fetch_results[idx]})
 
             return dataclass.ResultOperation(object=result, description='ann have')
 
@@ -227,7 +226,10 @@ class UserPhotos:
     executor: sql_query_executor.Excecutor
 
     def get_photo_id(self, user_id: int):
-        return self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=28))[0][0]
+        photo_id = self.executor.execute_query(sql_placeholder.fill_sql_template(user_id, number_temp=28))
+        if not photo_id:
+            return
+        return photo_id[0][0]
 
     def update_photo_id(self, user_id: int, file_id: str):
         self.executor.execute_query(sql_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
@@ -296,7 +298,6 @@ class Database(UserRecordingCondition,
                UserPhotos,
                UserWishes,
                UserMessages):
-
     all_cities: dict[str]
     executor: sql_query_executor.Excecutor
     _postgre_connection: database_connection

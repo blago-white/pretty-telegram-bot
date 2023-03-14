@@ -2,9 +2,12 @@ import aiogram
 
 from src.prettybot.bot import routes_registrator
 from src.prettybot.bot.messages import catchers, chat_interaction
-from src.prettybot.bot.db.registration import registration_data_handler
+from src.prettybot.bot.dbassistant.registrations import registration_data_handler
 from src.prettybot.bot.messages.botmessages import botmessages
-from src.prettybot.bot.messages.handlers import msghandlers
+from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
+from src.prettybot.bot.messages.handlers.eventhandlers import callback_handler
+from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
+from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
 from src.prettybot.bot.messages.handlers import prehandler
 from src.prettybot.bot import handlers_routes
 from src.config import pbconfig
@@ -51,24 +54,23 @@ def start_bot(db_scripts, bot_token: str):
         database_operation_assistant=db_scripts
     )
 
-    event_handler = msghandlers.BotEventHandler(database_operation_assistant=db_scripts,
-                                                bot=bot,
-                                                message_sender=message_sender,
-                                                message_deleter=message_deleter,
-                                                large_message_renderer=large_message_renderer,
-                                                registration_data_handler_=registration_data_handler_)
+    event_handler_ = event_handler.BotEventHandler(database_operation_assistant=db_scripts,
+                                                   bot=bot,
+                                                   message_sender=message_sender,
+                                                   message_deleter=message_deleter,
+                                                   large_message_renderer=large_message_renderer,
+                                                   registration_data_handler_=registration_data_handler_)
 
-    command_handler = msghandlers.CommandsHandler(bot_event_handler=event_handler)
-    content_type_handler = msghandlers.ContentTypesHandler(bot_event_handler=event_handler)
-    callback_handler = msghandlers.CallbackHandler(bot_event_handler=event_handler)
+    command_handler = command_handlers.CommandsHandler(bot_event_handler=event_handler_)
+    content_type_handler = content_type_handlers.ContentTypesHandler(bot_event_handler=event_handler_)
+    callback_handler_ = callback_handler.CallbackHandler(bot_event_handler=event_handler_)
 
     routes = handlers_routes.get_handlers_routes(
-            bot_commands_handler=command_handler,
-            bot_content_types_handler=content_type_handler
+        bot_commands_handler=command_handler,
+        bot_content_types_handler=content_type_handler
     )
 
     message_catcher = catchers.MessageCatcher(
-        commands_handler=command_handler,
         content_type_handler=content_type_handler,
         prehandler=prehandler_,
         command_handlers_routes=routes['command_handlers_routes'],
@@ -76,7 +78,7 @@ def start_bot(db_scripts, bot_token: str):
     )
 
     callback_catcher = catchers.CallbackCatcher(
-        callback_handler=callback_handler
+        callback_handler_=callback_handler_
     )
 
     routes_registrator.registrate_handlers(dispatcher=dp,

@@ -1,11 +1,11 @@
 from typing import Union
 import aiogram.types
 
-from src.prettybot.bot.db import database_assistant
+from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.dataclass import dataclass
 from src.prettybot.bot.messages import chat_interaction
 from src.prettybot.bot.minorscripts import supportive
-from src.prettybot.bot.messages.botmessages import render_decorators
+from src.prettybot.bot.messages.botmessages import rendering_wrappers
 from src.prettybot.bot.callback.callback_keyboards import *
 from src.config.pbconfig import *
 
@@ -89,11 +89,14 @@ class MainMessagesRenderer:
         self._message_sender = message_sender
         self._main_message_text_generator = main_message_text_generator
 
-    @render_decorators.rendering_completer
+    @rendering_wrappers.rendering_completer
     async def render_profile(
             self, user_id: int,
             user_lang_code: str) -> dict[int]:
         profile_photo_id = self.database_operation_assistant.get_photo_id(user_id=user_id)
+        if not profile_photo_id:
+            return dict(sended_message_id=None)
+
         profile_body = self._main_message_text_generator.generate_profile_body(user_id=user_id,
                                                                                user_lang_code=user_lang_code)
 
@@ -102,10 +105,9 @@ class MainMessagesRenderer:
                                                            description=profile_body,
                                                            keyboard=INLINE_PROFILE_KB[user_lang_code]
                                                            )
-
         return dict(sended_message_id=message_id.object)
 
-    @render_decorators.rendering_completer
+    @rendering_wrappers.rendering_completer
     async def render_finding_message(
             self, user_id: int,
             user_lang_code: str) -> dict[int]:
@@ -116,7 +118,7 @@ class MainMessagesRenderer:
 
         return dict(sended_message_id=sended_messsage_id.object)
 
-    @render_decorators.rendering_completer
+    @rendering_wrappers.rendering_completer
     async def render_clarify_message(
             self, user_id,
             user_lang_code: str) -> dict[int]:
@@ -131,7 +133,7 @@ class MainMessagesRenderer:
 
         return dict(sended_message_id=sended_message_id.object)
 
-    @render_decorators.rendering_completer
+    @rendering_wrappers.rendering_completer
     async def render_disappearing_message(
             self, user_id: int,
             description: str,
@@ -143,7 +145,7 @@ class MainMessagesRenderer:
             retrievable_message_id=retrievable_message_id,
             delay_before_deleting=delay_before_deleting)
 
-    @render_decorators.rendering_completer
+    @rendering_wrappers.rendering_completer
     async def render_main_message(
             self, user_id: int,
             description: str,

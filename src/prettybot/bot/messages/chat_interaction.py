@@ -48,7 +48,7 @@ class MessageSender:
 
             return dataclass.ResultOperation(object=sending_response.message_id)
 
-        except:
+        except Exception as e:
             return dataclass.ResultOperation(status=False, description='sending error')
 
     async def send(

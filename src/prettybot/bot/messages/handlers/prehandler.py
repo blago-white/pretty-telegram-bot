@@ -3,8 +3,7 @@ import aiogram
 
 from src.prettybot import bot
 from src.prettybot.bot.messages import chat_interaction
-from src.prettybot.bot.db import database_assistant
-from src.prettybot.bot.messages.handlers import msghandlers
+from src.prettybot.bot.dbassistant import database_assistant
 from src.config import pbconfig
 
 

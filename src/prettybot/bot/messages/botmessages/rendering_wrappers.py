@@ -1,6 +1,6 @@
 from src.prettybot.dataclass import dataclass
 from src.prettybot.bot.messages import chat_interaction
-from src.prettybot.bot.db import database_assistant
+from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.bot.asyncioscripts import delayer
 
 __all__ = ['exception_handler', 'rendering_wrapper']
@@ -51,8 +51,9 @@ async def handle_end_render_main(
         user_id: int,
         sended_message_id: int,
         renderer_instance):
-    await renderer_instance.delete_main_message(user_id=user_id)
-    renderer_instance.database_operation_assistant.add_main_message_to_db(user_id=user_id, id_message=sended_message_id)
+    await renderer_instance.delete_main_message(user_id=int(user_id))
+    renderer_instance.database_operation_assistant.add_main_message_to_db(user_id=user_id,
+                                                                          id_message=int(sended_message_id))
 
 
 async def handle_end_render_disappear(

@@ -3,7 +3,7 @@ global project variables
 """
 
 from src.config.statements import en, ru, general
-from src.prettybot.bot.db import sqltemplates
+from src.prettybot.bot.dbassistant import sqltemplates
 
 TEMPLATES = sqltemplates.templates
 

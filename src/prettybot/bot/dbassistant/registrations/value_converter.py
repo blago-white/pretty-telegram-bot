@@ -4,7 +4,7 @@ from src.prettybot.bot.minorscripts import supportive
 from src.config.recording_stages import *
 
 
-def validate_user_value(user_value: Union[str, int], record_strage: str) -> Union[str, bool, str]:
+def convert_user_param_value(user_value: Union[str, int], record_strage: str) -> Union[str, bool, str]:
     if record_strage == SEX_STAGE:
         return supportive.convert_sex_type(user_value)
 

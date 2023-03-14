@@ -1,5 +1,4 @@
 import json
-
 from src.prettybot.jsons.paths import paths
 
 
