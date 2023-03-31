@@ -8,98 +8,106 @@ from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
 from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.bot.dbassistant.registrations import registration_data_handler
 
-from src.prettybot.bot.minorscripts import supportive
+from src.prettybot.bot.minorscripts import minor_scripts
 
 from src.config.recording_stages import *
 
 
 class ContentTypesHandler:
-    database_operation_assistant: database_assistant.Database
-    message_sender: chat_interaction.MessageSender
-    message_deleter: chat_interaction.MessageDeleter
-    large_message_renderer: botmessages.MainMessagesRenderer
-    registration_data_handler: registration_data_handler.RegistrationParamsHandler
+    _database_operation_assistant: database_assistant.Database
+    _message_sender: chat_interaction.MessageSender
+    _large_message_renderer: botmessages.MainMessagesRenderer
+    _registration_data_handler: registration_data_handler.RegistrationParamsHandler
 
-    def __init__(self, bot_event_handler: event_handler.BotEventHandler):
-        self.__dict__ = {param: bot_event_handler.__dict__[param]
-                         for param in bot_event_handler.__dict__
+    def __init__(self, bot_handlers_fields: event_handler.EventHandlersFields):
+        self.__dict__ = {param: bot_handlers_fields.__dict__[param]
+                         for param in bot_handlers_fields.__dict__
                          if param in ContentTypesHandler.__annotations__}
 
     async def handle_photo(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
-        recording, record_type, record_stage = self.database_operation_assistant.get_recording_condition(
+        recording, record_type, record_stage = self._database_operation_assistant.get_recording_condition(
             user_id=user_id
-        ).object
+        )
 
         file_id = message.photo[0]['file_id']
         if recording and record_stage == STAGES_RECORDING[4]:
-            self.registration_data_handler.record_user_param(
+            self._registration_data_handler.record_user_param(
                 user_id=user_id,
                 message_payload=file_id,
                 record_stage=record_stage,
                 record_type=record_type)
 
-            await self.large_message_renderer.render_profile(
-                user_id=user_id,
-                user_lang_code=user_lang_code,
-            )
-
-            self.database_operation_assistant.stop_recording(user_id=user_id)
+            await self._large_message_renderer.render_profile(user_id=user_id, user_lang_code=user_lang_code)
+            self._database_operation_assistant.stop_recording(user_id=user_id)
 
     async def handle_text(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
-        if self.database_operation_assistant.get_chatting_condition(user_id=user_id).object:
-            """in future on this place be methods to re-send message to friend of user"""
+        if self._database_operation_assistant.get_chatting_condition(user_id=user_id):
+            """in future on this place be methods to re-send message to user friend"""
 
-            await self.message_sender.send(user_id=message.from_user.id,
-                                           description=message.text)
+            await self._message_sender.send(user_id=message.from_user.id,
+                                            description=message.text)
 
             return
 
-        user_recording_data = self.database_operation_assistant.get_recording_condition(user_id=user_id)
+        user_recording_data = self._database_operation_assistant.get_recording_condition(user_id=user_id)
 
-        if not user_recording_data.object:
+        if not user_recording_data or not user_recording_data[0]:
             return
 
-        recording, record_type, record_stage = user_recording_data.object
-        if recording:
-            statement_for_stage = user_answer_handlers.handle_message(message_text=message.text,
-                                                                      user_lang_code=user_lang_code,
-                                                                      record_type=record_type,
-                                                                      cities=self.database_operation_assistant.all_cities,
-                                                                      record_stage=record_stage)
+        recording, record_type, record_stage = user_recording_data
+        statement_for_stage = user_answer_handlers.handle_message(
+            message_text=message.text,
+            user_lang_code=user_lang_code,
+            record_type=record_type,
+            cities=self._database_operation_assistant.get_cities(),
+            record_stage=record_stage)
 
-            inline_markup_for_stage = supportive.get_inline_keyboard_by_stage(recordstage=record_stage,
-                                                                              recordtype=record_type)
+        inline_markup_for_stage = minor_scripts.get_inline_keyboard_by_stage(
+            recordstage=record_stage
+            if statement_for_stage.status
+            else STAGES_RECORDING[minor_scripts.get_record_stage_index(record_stage) - 1],
+            recordtype=record_type,
+            lang_code=user_lang_code)
 
-            if statement_for_stage.status:
-                self.registration_data_handler.record_user_param(user_id=user_id,
-                                                                 message_payload=message.text,
-                                                                 record_stage=record_stage,
-                                                                 record_type=record_type)
+        if statement_for_stage.status:
+            self._registration_data_handler.record_user_param(
+                user_id=user_id,
+                message_payload=message.text,
+                record_stage=record_stage,
+                record_type=record_type)
 
-                if record_type == TYPE_RECORDING[0] and record_stage:
-                    await self.large_message_renderer.render_main_message(user_id=user_id,
-                                                                          description=statement_for_stage.object,
-                                                                          markup=inline_markup_for_stage[user_lang_code]
-                                                                          )
+            handling_function = self._handling_functions_by_recordtype[record_type]
 
-                    self.database_operation_assistant.increase_recording_stage(user_id=user_id)
+            if record_type == TYPE_RECORDING[0]:
+                args = user_id, statement_for_stage.object, inline_markup_for_stage
 
-                elif record_type == TYPE_RECORDING[1]:
-                    await self.large_message_renderer.render_profile(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code)
+            else:
+                args = user_id, user_lang_code
 
-                    self.database_operation_assistant.stop_recording(user_id=user_id)
+            await handling_function(self, *args)
 
-                elif record_type == TYPE_RECORDING[2]:
-                    await self.large_message_renderer.render_finding_message(
-                        user_id=user_id,
-                        user_lang_code=user_lang_code)
+        elif not statement_for_stage.status and statement_for_stage.object:
+            await self._large_message_renderer.render_main_message(
+                user_id=user_id,
+                description=statement_for_stage.object,
+                markup=inline_markup_for_stage,
+                with_warn=True)
 
-            elif not statement_for_stage.status and statement_for_stage.object:
-                await self.large_message_renderer.render_main_message(
-                    user_id=user_id,
-                    description=statement_for_stage.object,
-                    markup=inline_markup_for_stage[user_lang_code],
-                    with_warn=True
-                )
+    async def _final_handle_registration_message(
+            self, user_id: int,
+            description: str,
+            markup: aiogram.types.InlineKeyboardMarkup) -> None:
+        await self._large_message_renderer.render_main_message(user_id=user_id, description=description, markup=markup)
+        self._database_operation_assistant.increase_recording_stage(user_id=user_id)
+
+    async def _final_handle_changing_account_info_message(self, user_id: int, user_lang_code: str) -> None:
+        await self._large_message_renderer.render_profile(user_id=user_id, user_lang_code=user_lang_code)
+        self._database_operation_assistant.stop_recording(user_id=user_id)
+
+    async def _final_handle_changing_searching_params_message(self, user_id: int, user_lang_code: str) -> None:
+        await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
+
+    _handling_functions_by_recordtype = {
+        TYPE_RECORDING[0]: _final_handle_registration_message,
+        TYPE_RECORDING[1]: _final_handle_changing_account_info_message,
+        TYPE_RECORDING[2]: _final_handle_changing_searching_params_message}

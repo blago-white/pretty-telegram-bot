@@ -5,27 +5,12 @@ from src.prettybot.bot.messages import catchers, chat_interaction
 from src.prettybot.bot.dbassistant.registrations import registration_data_handler
 from src.prettybot.bot.messages.botmessages import botmessages
 from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
-from src.prettybot.bot.messages.handlers.eventhandlers import callback_handler
+from .messages.handlers.eventhandlers import callback_handler
 from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
 from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
 from src.prettybot.bot.messages.handlers import prehandler
 from src.prettybot.bot import handlers_routes
 from src.config import pbconfig
-
-"""
-
-1. create back button
-2. add functionality button delete acc
-3. renaming
-3. commit push & tagging
-4. add wishes form 
-5. add simple mode (without deleting messages)
-
-"""
-
-
-def start_dispatcher(dp: aiogram.Dispatcher):
-    aiogram.executor.start_polling(dispatcher=dp, skip_updates=True)
 
 
 def start_bot(db_scripts, bot_token: str):
@@ -54,16 +39,16 @@ def start_bot(db_scripts, bot_token: str):
         database_operation_assistant=db_scripts
     )
 
-    event_handler_ = event_handler.BotEventHandler(database_operation_assistant=db_scripts,
-                                                   bot=bot,
-                                                   message_sender=message_sender,
-                                                   message_deleter=message_deleter,
-                                                   large_message_renderer=large_message_renderer,
-                                                   registration_data_handler_=registration_data_handler_)
+    handlers_fields = event_handler.EventHandlersFields(database_operation_assistant=db_scripts,
+                                                        bot=bot,
+                                                        message_sender=message_sender,
+                                                        message_deleter=message_deleter,
+                                                        large_message_renderer=large_message_renderer,
+                                                        registration_data_handler_=registration_data_handler_)
 
-    command_handler = command_handlers.CommandsHandler(bot_event_handler=event_handler_)
-    content_type_handler = content_type_handlers.ContentTypesHandler(bot_event_handler=event_handler_)
-    callback_handler_ = callback_handler.CallbackHandler(bot_event_handler=event_handler_)
+    command_handler = command_handlers.CommandsHandler(bot_handlers_fields=handlers_fields)
+    content_type_handler = content_type_handlers.ContentTypesHandler(bot_handlers_fields=handlers_fields)
+    callback_handler_ = callback_handler.CallbackHandler(bot_handlers_fields=handlers_fields)
 
     routes = handlers_routes.get_handlers_routes(
         bot_commands_handler=command_handler,
@@ -87,4 +72,8 @@ def start_bot(db_scripts, bot_token: str):
                                            tracked_commands=pbconfig.BOT_COMMANDS,
                                            tracked_content_types=pbconfig.BOT_CONTENT_TYPES)
 
-    start_dispatcher(dp=dp)
+    _start_dispatcher(dp=dp)
+
+
+def _start_dispatcher(dp: aiogram.Dispatcher):
+    aiogram.executor.start_polling(dispatcher=dp, skip_updates=True)

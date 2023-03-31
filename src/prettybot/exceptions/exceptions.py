@@ -1,0 +1,2 @@
+class UserDataNotFound(Exception):
+    pass

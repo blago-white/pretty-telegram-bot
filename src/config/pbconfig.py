@@ -23,14 +23,14 @@ MEDIUM_LEN_SAMPLING_CITIES = 4
 2 - first message
 """
 
-BOT_COMMANDS = {'start': ('start', ),
-                'help': ('help', ),
-                'restart': ('restart', ),
+BOT_COMMANDS = {'start': ('start',),
+                'help': ('help',),
+                'restart': ('restart',),
                 'lang': ('en', 'ru'),
-                'end': ('end', )}
+                'end': ('end',)}
 
-BOT_CONTENT_TYPES = {'photo': ('photo', ),
-                     'text': ('text', )}
+BOT_CONTENT_TYPES = {'photo': ('photo',),
+                     'text': ('text',)}
 
 LANG_CODES = dict(en_lang_select='en',
                   ru_lang_select='ru')
@@ -80,6 +80,17 @@ QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD = {
         'en': STATEMENTS_BY_LANG['en'].q_new_desc
     }
 }
+
+CITY_NAME_ABBREVIATIONS = {'область': 'обл.',
+                           'Республика': 'Респ.',
+                           'автономный округ': 'a.о.',
+                           'автономная область': 'a.обл.'}
+
+CITI_LONG_VIEW = '<b>{}</b> [{}]'
+
+DEFAULT_AGE_DECLINATION = 'лет'
+
+AGE_DECLINATIONS = [DEFAULT_AGE_DECLINATION, 'год', 'года']
 
 DEFAULT_LANG = 'en'
 

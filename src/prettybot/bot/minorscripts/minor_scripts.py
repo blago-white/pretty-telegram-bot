@@ -6,11 +6,6 @@ from src.config.recording_stages import *
 from src.prettybot.bot.callback.callback_keyboards import *
 
 
-# 1
-def get_age_declination(age: int) -> str:
-    return 'год' if age % 10 == 1 else 'года' if age % 10 == 1 or 1 < age % 10 < 5 else 'лет'
-
-
 # 3
 def convert_sex_type(obj: Union[bool, str]) -> Union[bool, str]:
     if type(obj) is bool:
@@ -78,23 +73,15 @@ def increase_stage_recording(stage_recording: str) -> str:
 
 
 # 2
-def get_inline_keyboard_by_stage(recordstage: str, recordtype: str) -> dict:
+def get_inline_keyboard_by_stage(recordstage: str, recordtype: str, lang_code: str) -> dict:
     if recordtype == TYPE_RECORDING[0] and recordstage in STAGES_RECORDING[1:3]:
-        return INLINE_SEX_KB
+        return INLINE_SEX_KB[lang_code]
 
     elif recordtype == TYPE_RECORDING[2] and recordstage == STAGES_RECORDING[2]:
-        return INLINE_SEX_KB
+        return INLINE_SEX_KB[lang_code]
 
     return INLINE_EMPTY_KB
 
 
-# 1
-def correct_text_to_db(text: str) -> str:
-    return "'{}'".format(text.replace("'", "''").replace("/", ""))
-
-
-# 3
-
-def convert_dict_to_tuple(dict_: dict[str]) -> tuple[Union[str, tuple[str]]]:
-    result = tuple(zip(dict_.keys(), dict_.values()))
-    return result if len(result) > 1 else result[0]
+def get_record_stage_index(record_stage: str) -> int:
+    return STAGES_RECORDING.index(record_stage)

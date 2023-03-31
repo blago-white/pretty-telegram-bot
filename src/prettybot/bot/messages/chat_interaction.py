@@ -129,28 +129,27 @@ class MessageDeleter:
     async def delete_message(
             self,
             user_id: int,
-            idmes: list[int]) -> dataclass.ResultOperation:
+            message_id: list[int]) -> dataclass.ResultOperation:
 
         """
 
         :param user_id: bot id of user
-        :param idmes: id of the message you want to delete, integer or list of integers
+        :param message_id: id of the message you want to delete, integer or list of integers
 
         :rtype ResultOperation class
         :returns: result of deleting
 
         """
-
         try:
-            if type(idmes) is not int:
-                response = [await self.bot.delete_message(user_id, idms) for idms in idmes]
+            if type(message_id) is not int:
+                response = [await self.bot.delete_message(user_id, msg_id) for msg_id in message_id]
 
                 if None in response:
                     return dataclass.ResultOperation(status=False, description='deliting error')
 
                 return dataclass.ResultOperation()
 
-            response = await self.bot.delete_message(user_id, idmes)
+            response = await self.bot.delete_message(user_id, message_id)
 
             if not response:
                 return dataclass.ResultOperation(status=False, description='deliting error')

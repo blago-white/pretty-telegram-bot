@@ -1,5 +1,5 @@
 import json
-from src.prettybot.jsons.paths import paths
+from src.prettybot.json.paths import paths
 
 
 def get_setings_db() -> dict[str]:
