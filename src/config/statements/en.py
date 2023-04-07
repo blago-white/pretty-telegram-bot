@@ -62,11 +62,11 @@ q_new_desc = 'enter new description'
 
 end_chatting = 'you successfully end the chatting'
 
-clarify = '🔎 do you want to <b>clarify</b> the data of the <b>people</b> you are looking for?'
+clarify = '🌐 do you want to <b>clarify</b> the data of the <b>people</b> you are looking for?'
 
-do_clairfy = u'\u2699 clarify'
+do_clairfy = u'\u2699 clarify searching params'
 
-start_find = '🔮 start find'
+start_fast_find = '🔮 fast find'
 
 profile_templ = '{name}, {age} {declination}, {city}\n<i>{desc}</i>'
 
@@ -79,10 +79,6 @@ man = 'man'
 
 woman = 'woman'
 
-not_spec_users_warn = 'Not a single user was found for the assigned conditions'
-
-not_fast_users_warn = 'No users found'
-
 find_successful = 'The user is found, follow the rules of communication on the Internet,' \
                   ' to stop the conversation, send me - /end'
 
@@ -91,4 +87,16 @@ find_from_buffer = 'finally, your companion has been found,' \
                    ' do not forget about the rules of communication on the Internet,' \
                    ' to stop the conversation - / end'
 
-start_fast_find = u'\u2705 find witout params'
+start_find = '🔍 find with params'
+
+buffering_question = '😸 <b>no users</b> have been found, ' \
+                     '<b>but</b> you can wait for <b>new</b> interlocutors to appear, or go <b>back</b>'
+
+bufferized_success = 'your account is <b>saved</b>, do not leave the device, ' \
+                     '<b>they can write</b> to you <b>at any time!</b>'
+
+btn_fast_buffering = u'\u26A1 fast wait'
+
+btn_specific_buffering = u'\u2699 wait with params'
+
+btn_exit_buffer = '🚫 stop waiting'

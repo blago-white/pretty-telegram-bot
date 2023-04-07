@@ -1,5 +1,11 @@
 from typing import Union
-from src.config import pbconfig
+
+TEMPLATES = []
+
+
+def set_templates(templates: dict):
+    global TEMPLATES
+    TEMPLATES = templates
 
 
 def fill_sql_template(*args, number_temp: int) -> Union[str, Exception]:
@@ -9,11 +15,14 @@ def fill_sql_template(*args, number_temp: int) -> Union[str, Exception]:
     :return: string - querry with your data or exception
     """
 
+    global TEMPLATES
+
     if not number_temp:
         return IndexError('not correct number template')
 
     try:
-        return pbconfig.TEMPLATES[number_temp].format(*args)
+        if TEMPLATES:
+            return TEMPLATES[number_temp].format(*args)
 
     except IndexError:
         return IndexError('Not correct number of template of not full args')

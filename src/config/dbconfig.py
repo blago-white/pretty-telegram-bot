@@ -1,4 +1,4 @@
-from src.config.recording_stages import STAGES_RECORDING, TYPE_RECORDING
+from ..config.recording_stages import STAGES_RECORDING, TYPE_RECORDING
 
 TABLES = ('main_messages', 'photos', 'states', 'users', 'users_info', 'users_searching_buffer')
 

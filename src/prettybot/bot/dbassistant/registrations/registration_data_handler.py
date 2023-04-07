@@ -1,10 +1,9 @@
-from typing import Union
-from collections.abc import Callable
+from typing import Union, Callable
 
-from src.prettybot.bot.dbassistant.registrations import _age_range_creator
-from src.prettybot.bot.dbassistant.registrations import _value_converter
+from . import _age_range_creator
+from . import _value_converter
+
 from src.prettybot.bot.dbassistant import database_assistant
-
 from src.config.recording_stages import *
 
 
@@ -46,17 +45,19 @@ class RegistrationParamsHandler:
 
         if record_type != TYPE_RECORDING[2]:
             self._database_operation_assistant.record_user_searching_param(user_id=user_id,
-                                                                           name_param=NAME_COLUMN_BY_LOGSTAGE[record_stage],
+                                                                           name_param=NAME_COLUMN_BY_LOGSTAGE[
+                                                                               record_stage],
                                                                            value_param=column_value)
 
         if record_stage in SEARCH_PARAM_COLUMNS:
             if record_stage == AGE_STAGE:
-                column_value = age_range_creator.get_age_range_for_db(
-                    *age_range_creator.get_age_range_limits(message_payload=message_payload,
-                                                            recording_type=record_type).values()
+                column_value = _age_range_creator.get_age_range_for_db(
+                    *_age_range_creator.get_age_range_limits(message_payload=message_payload,
+                                                             recording_type=record_type).values()
                 )
 
             self._database_operation_assistant.record_user_searching_param(user_id=user_id,
-                                                                           name_param=NAME_WISH_COLUMN_BY_LOGSTAGE[record_stage],
+                                                                           name_param=NAME_WISH_COLUMN_BY_LOGSTAGE[
+                                                                               record_stage],
                                                                            value_param=column_value
                                                                            )

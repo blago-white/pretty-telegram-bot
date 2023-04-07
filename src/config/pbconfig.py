@@ -1,27 +1,14 @@
-"""
-global project variables
-"""
+from .statements import en, ru, general
 
-from src.config.statements import en, ru, general
-from src.prettybot.bot.dbassistant import sqltemplates
-
-TEMPLATES = sqltemplates.templates
-
-STATEMENTS_BY_LANG = {'en': en,
-                      'ru': ru}
+STATEMENTS_BY_LANG = {'en': en, 'ru': ru}
 
 BASE_STATEMENTS = general
-#  constants
 
 MAX_LEN_SAMPLING_CITIES = 15
 
 MEDIUM_LEN_SAMPLING_CITIES = 4
 
-"""
-0 - profile
-1 - question message
-2 - first message
-"""
+ALLOWED_CHAT_TYPES = ('private', )
 
 BOT_COMMANDS = {'start': ('start',),
                 'help': ('help',),

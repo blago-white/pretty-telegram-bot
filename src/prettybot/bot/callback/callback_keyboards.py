@@ -7,6 +7,8 @@ INLINE_CHANGE_PROF_DATA_KB = dict()
 INLINE_SEX_KB = dict()
 INLINE_CHANGE_PARAMS_FIND_KB = dict()
 INLINE_MODE_FINDING_KB = dict()
+INLINE_BUFFERING_QUESTION_KB = dict()
+INLINE_EXIT_BUFFER_KB = dict()
 INLINE_EMPTY_KB = dict()
 
 KEYBOARDS = (INLINE_PROFILE_KB,
@@ -14,6 +16,8 @@ KEYBOARDS = (INLINE_PROFILE_KB,
              INLINE_SEX_KB,
              INLINE_CHANGE_PARAMS_FIND_KB,
              INLINE_MODE_FINDING_KB,
+             INLINE_BUFFERING_QUESTION_KB,
+             INLINE_EXIT_BUFFER_KB,
              INLINE_EMPTY_KB)
 
 KEYBOARD_INDEXES = {
@@ -22,7 +26,9 @@ KEYBOARD_INDEXES = {
     2: INLINE_SEX_KB,
     3: INLINE_CHANGE_PARAMS_FIND_KB,
     4: INLINE_MODE_FINDING_KB,
-    5: INLINE_EMPTY_KB
+    5: INLINE_BUFFERING_QUESTION_KB,
+    6: INLINE_EXIT_BUFFER_KB,
+    7: INLINE_EMPTY_KB
 }
 
 KEYBOARD_ROWS = dict(
@@ -30,7 +36,9 @@ KEYBOARD_ROWS = dict(
     INLINE_CHANGE_PROF_DATA_KB=2,
     INLINE_SEX_KB=2,
     INLINE_CHANGE_PARAMS_FIND_KB=3,
-    INLINE_MODE_FINDING_KB=1,
+    INLINE_MODE_FINDING_KB=2,
+    INLINE_BUFFERING_QUESTION_KB=2,
+    INLINE_EXIT_BUFFER_KB=1,
     INLINE_EMPTY_KB=1)
 
 KEYBOARD_NAMES = {
@@ -39,7 +47,9 @@ KEYBOARD_NAMES = {
     2: 'INLINE_SEX_KB',
     3: 'INLINE_CHANGE_PARAMS_FIND_KB',
     4: 'INLINE_MODE_FINDING_KB',
-    5: 'INLINE_EMPTY_KB'
+    5: 'INLINE_BUFFERING_QUESTION_KB',
+    6: 'INLINE_EXIT_BUFFER_KB',
+    7: 'INLINE_EMPTY_KB'
 }
 
 KEYBOARD_VALUES = {
@@ -51,8 +61,10 @@ KEYBOARD_VALUES = {
         'change%back'),
     2: ('sex%man', 'sex%woman'),
     3: ('changewish%change_age', 'changewish%change_city', 'changewish%change_sex', 'find%back'),
-    4: ('find%start&spec', 'find%start&fast', 'find%clarify', 'main%back'),
-    5: ()
+    4: ('find%start&fast', 'find%start&spec', 'main%back', 'find%clarify'),
+    5: ('buffer%fast', 'buffer%specific', 'main%back'),
+    6: ('buffer%back', ),
+    7: ()
 }
 
 KEYBOARD_TEXT_VALUES = {
@@ -69,8 +81,10 @@ KEYBOARD_TEXT_VALUES = {
                STATEMENTS_BY_LANG['en'].btn_change_description,
                STATEMENTS_BY_LANG['en'].btn_back)},
 
-    2: {'en': (STATEMENTS_BY_LANG['en'].man, STATEMENTS_BY_LANG['en'].woman),
-        'ru': (STATEMENTS_BY_LANG['ru'].man, STATEMENTS_BY_LANG['ru'].woman)},
+    2: {'en': (STATEMENTS_BY_LANG['en'].man,
+               STATEMENTS_BY_LANG['en'].woman),
+        'ru': (STATEMENTS_BY_LANG['ru'].man,
+               STATEMENTS_BY_LANG['ru'].woman)},
 
     3: {'en': (STATEMENTS_BY_LANG['en'].btn_change_age,
                STATEMENTS_BY_LANG['en'].btn_change_city,
@@ -81,16 +95,26 @@ KEYBOARD_TEXT_VALUES = {
                STATEMENTS_BY_LANG['ru'].btn_change_sex,
                STATEMENTS_BY_LANG['ru'].btn_back)},
 
-    4: {'en': (STATEMENTS_BY_LANG['en'].start_find,
-               STATEMENTS_BY_LANG['en'].start_fast_find,
-               STATEMENTS_BY_LANG['en'].do_clairfy,
+    4: {'en': (STATEMENTS_BY_LANG['en'].start_fast_find,
+               STATEMENTS_BY_LANG['en'].start_find,
+               STATEMENTS_BY_LANG['en'].btn_back,
+               STATEMENTS_BY_LANG['en'].do_clairfy),
+        'ru': (STATEMENTS_BY_LANG['ru'].start_fast_find,
+               STATEMENTS_BY_LANG['ru'].start_find,
+               STATEMENTS_BY_LANG['ru'].btn_back,
+               STATEMENTS_BY_LANG['ru'].do_clairfy)},
+
+    5: {'en': (STATEMENTS_BY_LANG['en'].btn_fast_buffering,
+               STATEMENTS_BY_LANG['en'].btn_specific_buffering,
                STATEMENTS_BY_LANG['en'].btn_back),
-        'ru': (STATEMENTS_BY_LANG['ru'].start_find,
-               STATEMENTS_BY_LANG['ru'].start_fast_find,
-               STATEMENTS_BY_LANG['ru'].do_clairfy,
+        'ru': (STATEMENTS_BY_LANG['ru'].btn_fast_buffering,
+               STATEMENTS_BY_LANG['ru'].btn_specific_buffering,
                STATEMENTS_BY_LANG['ru'].btn_back)},
 
-    5: {'en': (), 'ru': ()}
+    6: {'en': (STATEMENTS_BY_LANG['en'].btn_exit_buffer, ),
+        'ru': (STATEMENTS_BY_LANG['ru'].btn_exit_buffer, )},
+
+    7: {'en': (), 'ru': ()}
 }
 
 

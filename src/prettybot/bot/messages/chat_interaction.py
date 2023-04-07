@@ -1,15 +1,16 @@
 import aiogram
-
 from aiogram.types import ParseMode
-from src.config.pbconfig import STATEMENTS_BY_LANG, BASE_STATEMENTS
+
 from src.prettybot.dataclass import dataclass
-from src.config.pbconfig import DEFAULT_LANG
 
-__all__ = ['send_reply_message', 'send_photo', 'sender', 'send_except_message', 'delete_message']
+from src.config.pbconfig import *
+
+__all__ = ['ChatMessagesInteractor']
 
 
-class MessageSender:
+class ChatMessagesInteractor:
     bot: aiogram.Bot
+    _INVALID_MESSAGE_ID = -1
 
     def __init__(self, bot: aiogram.Bot):
         self.bot = bot
@@ -48,8 +49,10 @@ class MessageSender:
 
             return dataclass.ResultOperation(object=sending_response.message_id)
 
-        except Exception as e:
-            return dataclass.ResultOperation(status=False, description='sending error')
+        except Exception as exception:
+            return dataclass.ResultOperation(status=False,
+                                             object=self._INVALID_MESSAGE_ID,
+                                             description=f'sending error')
 
     async def send(
             self,
@@ -78,7 +81,9 @@ class MessageSender:
             return dataclass.ResultOperation(object=sending_response.message_id)
 
         except Exception as e:
-            return dataclass.ResultOperation(status=False, description='sender error')
+            return dataclass.ResultOperation(status=False,
+                                             object=self._INVALID_MESSAGE_ID,
+                                             description=e)
 
     async def send_except_message(
             self,
@@ -115,17 +120,6 @@ class MessageSender:
 
         return dataclass.ResultOperation(object=sending_response.message_id)
 
-
-class MessageDeleter:
-    bot: aiogram.Bot
-
-    def __init__(self, aiogram_bot: aiogram.Bot):
-
-        if type(aiogram_bot) is not aiogram.Bot:
-            raise ValueError('Not correct aiogram bot instance ({})'.format(type(aiogram_bot)))
-
-        self.bot = aiogram_bot
-
     async def delete_message(
             self,
             user_id: int,
@@ -159,34 +153,3 @@ class MessageDeleter:
         except Exception as e:
             return dataclass.ResultOperation(status=False, description=str(e))
 
-
-class MessageEditor:
-    bot: aiogram.Bot
-
-    def __init__(self, aiogram_bot: aiogram.Bot):
-
-        if type(aiogram_bot) is not aiogram.Bot:
-            raise ValueError('Not correct aiogram bot instance ({})'.format(type(aiogram_bot)))
-
-        self.bot = aiogram_bot
-
-    async def edit_message_text(self, user_id: int, id_message: int, new_description: str) -> dataclass.ResultOperation:
-
-        """
-        :param user_id: cirrent chat id
-        :param id_message: id of current message
-        :param new_description: new text for current message
-
-        :rtype ResultOperation class
-        :returns: result operation, if successful object is id of editing message
-        """
-
-        try:
-            await self.bot.edit_message_text(text=new_description,
-                                             chat_id=user_id,
-                                             id_message=id_message)
-
-            return dataclass.ResultOperation()
-
-        except Exception as exception:
-            return dataclass.ResultOperation(status=False, description=exception)

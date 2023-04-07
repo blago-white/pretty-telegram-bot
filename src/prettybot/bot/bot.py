@@ -1,15 +1,12 @@
 import aiogram
 
-from src.prettybot.bot import routes_registrator
-from src.prettybot.bot.messages import catchers, chat_interaction
-from src.prettybot.bot.dbassistant.registrations import registration_data_handler
-from src.prettybot.bot.messages.botmessages import botmessages
-from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
-from .messages.handlers.eventhandlers import callback_handler
-from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
-from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
-from src.prettybot.bot.messages.handlers import prehandler
-from src.prettybot.bot import handlers_routes
+from .handling_routes import routes_registrator, handlers_routes
+from .messages import catchers, chat_interaction
+from .messages.botmessages import botmessages
+from .messages.handlers import prehandler
+from .messages.handlers.eventhandlers import event_handler, command_handlers, content_type_handlers, callback_handler
+from .dbassistant.registrations import registration_data_handler
+
 from src.config import pbconfig
 
 
@@ -21,18 +18,14 @@ def start_bot(db_scripts, bot_token: str):
     except Exception as exeption:
         raise exeption
 
-    message_sender = chat_interaction.MessageSender(bot=bot)
-    message_deleter = chat_interaction.MessageDeleter(aiogram_bot=bot)
+    message_interactor = chat_interaction.ChatMessagesInteractor(bot=bot)
 
-    prehandler_ = prehandler.MessagePreHandler(database_assistant_=db_scripts,
-                                               message_sender=message_sender,
-                                               message_deleter=message_deleter)
+    prehandler_ = prehandler.MessagePreHandler(database_assistant_=db_scripts, message_interactor=message_interactor)
 
     large_message_renderer = botmessages.MainMessagesRenderer(
         database_operation_assistant=db_scripts,
-        message_deleter=message_deleter,
         main_message_text_generator=botmessages.MainMessageTextGenerator(database_operation_assistant=db_scripts),
-        message_sender=message_sender
+        message_interactor=message_interactor
     )
 
     registration_data_handler_ = registration_data_handler.RegistrationParamsHandler(
@@ -41,8 +34,7 @@ def start_bot(db_scripts, bot_token: str):
 
     handlers_fields = event_handler.EventHandlersFields(database_operation_assistant=db_scripts,
                                                         bot=bot,
-                                                        message_sender=message_sender,
-                                                        message_deleter=message_deleter,
+                                                        message_interactor=message_interactor,
                                                         large_message_renderer=large_message_renderer,
                                                         registration_data_handler_=registration_data_handler_)
 

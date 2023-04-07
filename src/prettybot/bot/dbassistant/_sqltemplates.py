@@ -20,7 +20,7 @@ templates = {1: "SELECT recording, recording_type, recording_stage FROM states W
                  "INNER JOIN users_searching_buffer ON "
                  "users_searching_buffer.telegram_id = users_info.telegram_id AND '{}'::int4range @> "
                  "age::integer AND city='{}' AND sex={} AND users_info.telegram_id != {} AND specified = true "
-                 "ORDER BY users_searching_buffer.buffering_time DESC "
+                 "ORDER BY telegram_id DESC "
                  "LIMIT 1;",
              19: "SELECT * FROM {} WHERE telegram_id = {};",
              20: "DELETE FROM {} WHERE telegram_id = {};",
@@ -34,11 +34,14 @@ templates = {1: "SELECT recording, recording_type, recording_stage FROM states W
                  "FROM users_info "
                  "INNER JOIN users_searching_buffer ON "
                  "users_searching_buffer.telegram_id = users_info.telegram_id AND users_info.telegram_id != {} AND NOT specified "
-                 "ORDER BY users_searching_buffer.buffering_time DESC "
+                 "ORDER BY telegram_id DESC "
                  "LIMIT 1;",
              26: "DELETE FROM users_searching_buffer WHERE telegram_id={};",
              27: "INSERT INTO users_searching_buffer VALUES ({}, '{}', {});",
              28: "SELECT photo_id FROM photos WHERE telegram_id={};",
              29: "UPDATE main_messages SET message_id={} WHERE telegram_id={};",
-             30: "SELECT telegram_id FROM users WHERE telegram_id={};"
+             30: "SELECT telegram_id FROM users WHERE telegram_id={};",
+             31: "UPDATE users_info SET interlocutor_id={} WHERE telegram_id={};",
+             32: "UPDATE users_info SET interlocutor_id=NULL WHERE telegram_id={};",
+             33: "SELECT interlocutor_id FROM users_info WHERE telegram_id={}"
              }

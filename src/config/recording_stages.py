@@ -1,4 +1,4 @@
-from src.config.pbconfig import *
+from .pbconfig import *
 
 LENGHT_TYPE_RECORDING_VAL = 3
 LENGHT_STAGE_RECORDING_VAL = 3
@@ -28,8 +28,6 @@ STAGES_RECORDING = [
 ]
 
 LAST_REGISTRATION_STAGE = STAGES_RECORDING[-1]
-
-MAIN_REGISTRATION_TYPE = TYPE_RECORDING[0]
 
 STATEMENT_FOR_STAGE = dict(
     en=dict(

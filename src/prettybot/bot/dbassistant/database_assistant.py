@@ -1,30 +1,37 @@
 import datetime
+import inspect
 import psycopg2.extras
 from typing import Union
+
+from . import _sqltemplates
+from .. import _lightscripts
 
 from src.prettybot.db import template_placeholder
 from src.prettybot.db import sql_query_executor
 from src.prettybot.db import database_connection
-from src.prettybot.bot.minorscripts import minor_scripts
+from src.prettybot.exceptions import exceptions, exceptions_inspector
 
 from src.config.dbconfig import *
 from src.config.recording_stages import *
 
 
-class UserRecordingCondition:
+class UserRecording:
     executor: sql_query_executor.Excecutor
 
     def get_recording_condition(self, user_id: int) -> Union[list[tuple], None]:
         response = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=1))
-        return response[0] if response else None
+        if response:
+            return response[0]
+        raise exceptions.UserDataNotFoundException(
+            exceptions_inspector.get_traceback(stack=inspect.stack(), exception='recording state not found')
+        )
 
     def stop_recording(self, user_id: int) -> None:
         self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=3))
 
     def increase_recording_stage(self, user_id: int) -> None:
         recording, record_type, record_stage = self.get_recording_condition(user_id=user_id)
-        record_stage = supportive.increase_stage_recording(record_stage)
-
+        record_stage = _increase_stage_recording(record_stage)
         if recording:
             self.executor.execute_query(
                 template_placeholder.fill_sql_template(record_type, record_stage, user_id, number_temp=4)
@@ -36,22 +43,48 @@ class UserRecordingCondition:
         )
 
 
-class UserChattingCondition:
-    executor: sql_query_executor.Excecutor
+class UserChatting:
+    _ON_NOT_FINDED_INTERLOCUTOR_ID = -1
 
-    def get_chatting_condition(self, user_id: int) -> Union[bool, BaseException]:
+    def user_in_chatting(self, user_id: int) -> Union[bool, exceptions.UserDataNotFoundException]:
         data = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=23))
-        return data[0][0] if type(data) is list and data else data
+        if (type(data) is list) and data:
+            return data[0][0]
 
-    def start_chatting(self, user_id: int) -> None:
-        self.executor.execute_query(
-            template_placeholder.fill_sql_template(True, int(user_id), number_temp=24)
+        raise exceptions.UserDataNotFoundException(
+            exceptions_inspector.get_traceback(stack=inspect.stack(), exception='User data is nothing')
         )
+
+    def get_interlocator_id(self, user_id: int) -> Union[int, None]:
+        return self._get_interlocator_id(user_id=user_id)
+
+    def start_chatting(self, user_id: int, interlocator_id: int) -> None:
+        user_buffered = bool(self.executor.execute_query(
+            template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
+        ))
+        if user_buffered:
+            raise exceptions.UserNotRemovedFromBufferException(
+                exceptions_inspector.get_traceback(stack=inspect.stack(), exception='User bufferized now!')
+            )
+
+        self.executor.execute_query(template_placeholder.fill_sql_template(True, int(user_id), number_temp=24))
+        self._add_interlocator_id(user_id=user_id, interlocator_id=interlocator_id)
 
     def stop_chatting(self, user_id: int) -> None:
+        self.executor.execute_query(template_placeholder.fill_sql_template(False, int(user_id), number_temp=24))
+        self._delete_interlocator_id(user_id=user_id)
+
+    def _add_interlocator_id(self, user_id: int, interlocator_id: int) -> None:
         self.executor.execute_query(
-            template_placeholder.fill_sql_template(False, int(user_id), number_temp=24)
+            template_placeholder.fill_sql_template(int(interlocator_id), int(user_id), number_temp=31)
         )
+
+    def _get_interlocator_id(self, user_id: int) -> Union[int, None]:
+        interlocator_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=33))
+        return interlocator_id[0][0] if interlocator_id else self._ON_NOT_FINDED_INTERLOCUTOR_ID
+
+    def _delete_interlocator_id(self, user_id: int) -> None:
+        self.executor.execute_query(template_placeholder.fill_sql_template(int(user_id), number_temp=32))
 
 
 class UserBuffer:
@@ -59,19 +92,19 @@ class UserBuffer:
 
     def get_user_buffer_status(self, user_id: int) -> bool:
         from_bufer_data = self.executor.execute_query(
-            sqlquery=template_placeholder.fill_sql_template('users_searching_buffer', user_id, number_temp=19)
+            sqlquery=template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
         )
 
         return True if from_bufer_data else False
 
-    def buffering_user_with_params(self, user_id: int, date_message: datetime.datetime) -> None:
+    def buffering_user_with_params(self, user_id: int) -> None:
         self.executor.execute_query(
-            sqlquery=template_placeholder.fill_sql_template(user_id, date_message, True, number_temp=27)
+            sqlquery=template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), True, number_temp=27)
         )
 
-    def buffering_user_without_params(self, user_id: int, date_message: datetime.datetime) -> None:
+    def buffering_user_without_params(self, user_id: int) -> None:
         self.executor.execute_query(
-            template_placeholder.fill_sql_template(user_id, date_message, False, number_temp=27)
+            template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), False, number_temp=27)
         )
 
     def del_user_from_buffer(self, user_id: int) -> None:
@@ -106,7 +139,8 @@ class UserRecords:
                 user_id, number_temp=9))
         )
 
-        return BaseException if BaseException in responses else None
+        if BaseException in responses:
+            raise exceptions.SQLSintaxError
 
     def get_user_records(self, user_id: int) -> Union[BaseException, None]:
         if self.check_user_exists(user_id=user_id):
@@ -140,7 +174,7 @@ class UserSearching:
 
     def get_user_id_without_params(self, user_id: int) -> Union[int, None]:
         users = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=25))
-        return users[0][0] if type(users) is list and users else None
+        return users[0][0] if type(users) is list and users else list(tuple())
 
     def get_user_id_by_params(self, user_id: int,
                               age_range: psycopg2.extras.NumericRange,
@@ -151,7 +185,7 @@ class UserSearching:
             template_placeholder.fill_sql_template(age_range, city, sex, user_id, number_temp=18)
         )
 
-        return users[0][0] if type(users) is list and users else None
+        return users[0][0] if type(users) is list and users else list(tuple())
 
 
 class UserPhotos:
@@ -159,7 +193,7 @@ class UserPhotos:
 
     def get_photo_id(self, user_id: int) -> str:
         photo_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=28))
-        return photo_id[0][0] if type(photo_id) is list and photo_id else None
+        return photo_id[0][0] if type(photo_id) is list and photo_id else ''
 
     def update_photo_id(self, user_id: int, file_id: str) -> None:
         self.executor.execute_query(template_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
@@ -186,7 +220,7 @@ class UserMessages:
 
     def get_main_message(self, user_id: int) -> int:
         message_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=16))
-        return int(message_id[0][0]) if type(message_id) is list and message_id else None
+        return int(message_id[0][0]) if type(message_id) is list and message_id else 0
 
     def set_main_message_id(self, user_id: int, message_id: int) -> None:
         setting_method = self._setting_function[bool(self.get_main_message(user_id))]
@@ -239,10 +273,12 @@ class DBTables:
     executor: sql_query_executor.Excecutor
 
     def get_user_data_by_table(self, user_id: int, table_name: str) -> Union[list[tuple], BaseException, None]:
-        return self.executor.execute_query(template_placeholder.fill_sql_template(table_name, user_id, number_temp=19))
+        return self.executor.execute_query(template_placeholder.fill_sql_template(table_name,
+                                                                                  int(user_id),
+                                                                                  number_temp=19))
 
 
-class Database(UserRecordingCondition, UserChattingCondition,
+class Database(UserRecording, UserChatting,
                UserBuffer, UserLanguage, UserRecords, UserSearching,
                UserPhotos, UserWishes, UserMessages, UserCities, DBTables):
 
@@ -254,7 +290,9 @@ class Database(UserRecordingCondition, UserChattingCondition,
                                                                          password=password,
                                                                          user=user)
 
-        self.executor = sql_query_executor.Excecutor(connection=self._postgre_connection.CONNECTION)
+        self.executor = sql_query_executor.Excecutor(connection_=self._postgre_connection.CONNECTION)
+
+        template_placeholder.set_templates(_sqltemplates.templates)
 
         if (not self.executor) or (not self._postgre_connection):
             raise ConnectionError('error with initializing database')
@@ -262,3 +300,10 @@ class Database(UserRecordingCondition, UserChattingCondition,
     def exit(self) -> None:
         if self._postgre_connection:
             self._postgre_connection.exit()
+
+
+def _increase_stage_recording(stage_recording: str) -> str:
+    return STAGES_RECORDING[
+        STAGES_RECORDING.index(stage_recording) + 1
+        if stage_recording != LAST_REGISTRATION_STAGE else
+        STAGES_RECORDING.index(stage_recording)]

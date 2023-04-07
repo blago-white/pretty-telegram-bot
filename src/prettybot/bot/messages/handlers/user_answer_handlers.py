@@ -1,9 +1,13 @@
+import inspect
 from typing import Union
 
+from . import _cities_list_generator
+
 from src.prettybot.dataclass import dataclass
-from src.prettybot.bot.minorscripts import minor_scripts
+from src.prettybot.bot import _lightscripts
 from src.config.recording_stages import TYPE_RECORDING
 from src.config.dbconfig import AMOUNT_CITIES
+from src.prettybot.exceptions import exceptions_inspector
 
 from src.config.pbconfig import *
 
@@ -27,7 +31,8 @@ def handle_message(user_lang_code: str, record_stage: str, **kwargs) -> Union[da
         return text_handler(user_lang_code=user_lang_code, **kwargs)
 
     except KeyError:
-        return
+        raise KeyError(exceptions_inspector.get_traceback(stack=inspect.stack(),
+                                                          exception='given not enough args for handler'))
 
 
 def _handle_age(user_lang_code: str, **kwargs) -> Union[str, dataclass.ResultOperation]:
@@ -46,10 +51,9 @@ def _handle_age(user_lang_code: str, **kwargs) -> Union[str, dataclass.ResultOpe
                                              object=STATEMENTS_BY_LANG[user_lang_code].invalid_v_age)
 
     elif record_type == TYPE_RECORDING[2]:
-        if minor_scripts.check_numbers_in_string(string=message_text) is not None:
-            numbers = [i for i in message_text if i.isdigit()]
-
-            if len(numbers) < 4:
+        digits = _lightscripts.get_digits_from_string(string=message_text)
+        if digits is not None:
+            if len(digits) < 4:
                 return dataclass.ResultOperation(status=False,
                                                  object=STATEMENTS_BY_LANG[user_lang_code].invalid_v_range_age)
 
@@ -65,12 +69,12 @@ def _handle_city(user_lang_code: str, **kwargs):
     message_text = kwargs.get('message_text')
 
     if str.lower(str(message_text)) not in cities:
-        simular_cities = minor_scripts.get_similar_cities(city=str.lower(message_text), cities=cities)
-        if simular_cities:
+        similar = _cities_list_generator.get_similar_cities(city=str.lower(message_text), cities=cities)
+        if similar:
             return dataclass.ResultOperation(status=False,
-                                             object=minor_scripts.generate_drop_down_cities_list(
-                                                 cities_list=simular_cities)
-                                             )
+                                             object=_cities_list_generator.generate_drop_down_cities_list(
+                                                 cities_list=similar
+                                             ))
 
         return dataclass.ResultOperation(status=False, object=STATEMENTS_BY_LANG[user_lang_code].invalid_citi)
 
@@ -111,3 +115,4 @@ HANDLE_SCRIPT_BY_RECORDING_STAGE = {
     'dsc': _handle_description,
     'pht': _handle_photo,
 }
+

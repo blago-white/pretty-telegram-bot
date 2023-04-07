@@ -1,6 +1,5 @@
-from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
-from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
 from src.config import pbconfig
+from ..messages.handlers.eventhandlers import command_handlers, content_type_handlers
 
 
 def get_handlers_routes(

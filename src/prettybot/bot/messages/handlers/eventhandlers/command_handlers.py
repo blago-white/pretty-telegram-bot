@@ -3,6 +3,7 @@ import aiogram
 from src.prettybot.bot.messages.handlers.eventhandlers.event_handler import EventHandlersFields
 from src.prettybot.bot.dbassistant.database_assistant import Database
 from src.prettybot.bot.messages.botmessages.botmessages import MainMessagesRenderer
+from src.prettybot.exceptions import exceptions
 from src.config.recording_stages import *
 
 
@@ -16,12 +17,16 @@ class CommandsHandler:
                          if param in CommandsHandler.__annotations__}
 
     async def handle_start(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
-        user_recording_condition = self._database_operation_assistant.get_recording_condition(user_id=user_id)
+        try:
+            user_recording_condition = self._database_operation_assistant.get_recording_condition(user_id=user_id)
+        except exceptions.UserDataNotFoundException:
+            user_recording_condition = None
+
         if user_recording_condition:
 
             recording, record_type, record_stage = user_recording_condition
 
-            if recording and record_type == MAIN_REGISTRATION_TYPE:
+            if recording and record_type == MAIN_RECORDING_TYPE:
                 await self._large_message_renderer.render_disappearing_message(
                     user_id=user_id,
                     description=STATEMENTS_BY_LANG[user_lang_code].help,
@@ -67,10 +72,21 @@ class CommandsHandler:
         )
 
     async def handle_stop_chatting(self, user_id: int, user_lang_code: str, **_):
-        if self._database_operation_assistant.get_chatting_condition(user_id=user_id):
-            self._database_operation_assistant.stop_chatting(user_id=user_id)
-            await self._large_message_renderer.render_profile(user_id=user_id, user_lang_code=user_lang_code)
-            await self._large_message_renderer.render_disappearing_message(
-                    user_id=user_id,
-                    description=STATEMENTS_BY_LANG[user_lang_code].end_chatting,
+        interlocutor_id = self._database_operation_assistant.get_interlocator_id(user_id=user_id)
+        interlocutor_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=interlocutor_id)
+
+        for telegram_id in (user_id, interlocutor_id):
+            self._database_operation_assistant.stop_chatting(user_id=telegram_id)
+
+        await self._large_message_renderer.render_profile(user_id=user_id, user_lang_code=user_lang_code)
+        await self._large_message_renderer.render_profile(user_id=interlocutor_id, user_lang_code=interlocutor_lang_code)
+
+        await self._large_message_renderer.render_disappearing_message(
+            user_id=user_id,
+            description=STATEMENTS_BY_LANG[user_lang_code].end_chatting,
+            delay_before_deleting=DEFAULT_DELAY)
+
+        await self._large_message_renderer.render_disappearing_message(
+                    user_id=interlocutor_id,
+                    description=STATEMENTS_BY_LANG[interlocutor_lang_code].end_chatting,
                     delay_before_deleting=DEFAULT_DELAY)

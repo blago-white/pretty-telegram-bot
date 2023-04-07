@@ -4,18 +4,16 @@ from src.prettybot.bot.messages import chat_interaction
 from src.prettybot.bot.messages.handlers import user_answer_handlers
 from src.prettybot.bot.messages.botmessages import botmessages
 from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
-
+from src.prettybot.bot import _lightscripts
 from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.bot.dbassistant.registrations import registration_data_handler
-
-from src.prettybot.bot.minorscripts import minor_scripts
 
 from src.config.recording_stages import *
 
 
 class ContentTypesHandler:
     _database_operation_assistant: database_assistant.Database
-    _message_sender: chat_interaction.MessageSender
+    _message_interactor: chat_interaction.ChatMessagesInteractor
     _large_message_renderer: botmessages.MainMessagesRenderer
     _registration_data_handler: registration_data_handler.RegistrationParamsHandler
 
@@ -41,12 +39,9 @@ class ContentTypesHandler:
             self._database_operation_assistant.stop_recording(user_id=user_id)
 
     async def handle_text(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
-        if self._database_operation_assistant.get_chatting_condition(user_id=user_id):
-            """in future on this place be methods to re-send message to user friend"""
-
-            await self._message_sender.send(user_id=message.from_user.id,
-                                            description=message.text)
-
+        if self._database_operation_assistant.user_in_chatting(user_id=user_id):
+            interlocator_id = self._database_operation_assistant.get_interlocator_id(user_id=user_id)
+            await self._message_interactor.send(user_id=interlocator_id, description=message.text)
             return
 
         user_recording_data = self._database_operation_assistant.get_recording_condition(user_id=user_id)
@@ -62,12 +57,14 @@ class ContentTypesHandler:
             cities=self._database_operation_assistant.get_cities(),
             record_stage=record_stage)
 
-        inline_markup_for_stage = minor_scripts.get_inline_keyboard_by_stage(
-            recordstage=record_stage
-            if statement_for_stage.status
-            else STAGES_RECORDING[minor_scripts.get_record_stage_index(record_stage) - 1],
+        inline_markup_for_stage = _lightscripts.get_inline_keyboard_by_stage(
+            recordstage=_lightscripts.get_shifted_recordstage_for_main_record_type(
+                record_type=record_type,
+                record_stage=record_stage,
+                user_answer_valid=statement_for_stage.status),
             recordtype=record_type,
-            lang_code=user_lang_code)
+            user_lang_code=user_lang_code,
+        )
 
         if statement_for_stage.status:
             self._registration_data_handler.record_user_param(
@@ -90,8 +87,7 @@ class ContentTypesHandler:
             await self._large_message_renderer.render_main_message(
                 user_id=user_id,
                 description=statement_for_stage.object,
-                markup=inline_markup_for_stage,
-                with_warn=True)
+                markup=inline_markup_for_stage)
 
     async def _final_handle_registration_message(
             self, user_id: int,
@@ -106,6 +102,7 @@ class ContentTypesHandler:
 
     async def _final_handle_changing_searching_params_message(self, user_id: int, user_lang_code: str) -> None:
         await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
+        self._database_operation_assistant.stop_recording(user_id=user_id)
 
     _handling_functions_by_recordtype = {
         TYPE_RECORDING[0]: _final_handle_registration_message,

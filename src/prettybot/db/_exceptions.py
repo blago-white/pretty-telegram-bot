@@ -1,0 +1,2 @@
+class SQLSintaxError(Exception):
+    pass
