@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from src.config.pbconfig import STATEMENTS_BY_LANG
-from src.config.pbconfig import LANG_CODES
+
+from src.config.pbconfig import *
 
 INLINE_PROFILE_KB = dict()
 INLINE_CHANGE_PROF_DATA_KB = dict()
@@ -121,7 +121,8 @@ KEYBOARD_TEXT_VALUES = {
 def _fill_keyboard(keyboard: dict, language: str, row_width: int, value_for_btns: dict, text_for_btns: dict):
     keyboard.update({language: InlineKeyboardMarkup(row_width=row_width)})
 
-    buttons = [InlineKeyboardButton(text_for_btns[language][cycle], callback_data=value_for_btns[cycle])
+    buttons = [InlineKeyboardButton(text_for_btns[language][cycle],
+                                    callback_data=value_for_btns[cycle])
                for cycle in range(len(value_for_btns))
                ]
 

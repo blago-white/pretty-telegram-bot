@@ -1,6 +1,7 @@
 import asyncio
-from typing import Union
-from src.config.pbconfig import *
+from typing import Union, Any
+
+from ...config.pbconfig import *
 
 
 async def start_delay(delay: int) -> None:
@@ -14,7 +15,7 @@ async def start_delay(delay: int) -> None:
         await asyncio.sleep(delay=int(delay))
 
 
-async def postpone_async_task(*tasks: list, delay: int) -> object:
+async def postpone_async_task(*tasks: list, delay: int) -> Any:
     """
     :param tasks: iterable object with asyncio futures
     :param delay: postpone time in seconds

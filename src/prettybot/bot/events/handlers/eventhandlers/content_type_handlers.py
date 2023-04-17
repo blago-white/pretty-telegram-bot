@@ -1,9 +1,10 @@
 import aiogram
 
-from src.prettybot.bot.messages import chat_interaction
-from src.prettybot.bot.messages.handlers import user_answer_handlers
-from src.prettybot.bot.messages.botmessages import botmessages
-from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
+from ..eventhandlers import event_handler
+from ...botmessages import botmessages
+from ... import chat_interactor
+from ...handlers.user_answers_handler import user_answers_handler
+
 from src.prettybot.bot import _lightscripts
 from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.bot.dbassistant.registrations import registration_data_handler
@@ -13,7 +14,7 @@ from src.config.recording_stages import *
 
 class ContentTypesHandler:
     _database_operation_assistant: database_assistant.Database
-    _message_interactor: chat_interaction.ChatMessagesInteractor
+    _message_interactor: chat_interactor.ChatMessagesInteractor
     _large_message_renderer: botmessages.MainMessagesRenderer
     _registration_data_handler: registration_data_handler.RegistrationParamsHandler
 
@@ -50,43 +51,40 @@ class ContentTypesHandler:
             return
 
         recording, record_type, record_stage = user_recording_data
-        statement_for_stage = user_answer_handlers.handle_message(
+        statement_for_stage = user_answers_handler.handle_message(
             message_text=message.text,
             user_lang_code=user_lang_code,
             record_type=record_type,
-            cities=self._database_operation_assistant.get_cities(),
             record_stage=record_stage)
-
         inline_markup_for_stage = _lightscripts.get_inline_keyboard_by_stage(
             recordstage=_lightscripts.get_shifted_recordstage_for_main_record_type(
                 record_type=record_type,
                 record_stage=record_stage,
-                user_answer_valid=statement_for_stage.status),
+                user_answer_is_valid=statement_for_stage[0]),
             recordtype=record_type,
             user_lang_code=user_lang_code,
         )
-
-        if statement_for_stage.status:
+        if statement_for_stage[0]:
             self._registration_data_handler.record_user_param(
                 user_id=user_id,
                 message_payload=message.text,
                 record_stage=record_stage,
                 record_type=record_type)
 
-            handling_function = self._handling_functions_by_recordtype[record_type]
+            handling_function = self._HANDLING_FUNCTIONS_BY_RECORDTYPE[record_type]
 
             if record_type == TYPE_RECORDING[0]:
-                args = user_id, statement_for_stage.object, inline_markup_for_stage
+                args = user_id, statement_for_stage[-1], inline_markup_for_stage
 
             else:
                 args = user_id, user_lang_code
 
             await handling_function(self, *args)
 
-        elif not statement_for_stage.status and statement_for_stage.object:
+        elif not statement_for_stage[0] and statement_for_stage[1]:
             await self._large_message_renderer.render_main_message(
                 user_id=user_id,
-                description=statement_for_stage.object,
+                description=statement_for_stage[1],
                 markup=inline_markup_for_stage)
 
     async def _final_handle_registration_message(
@@ -104,7 +102,7 @@ class ContentTypesHandler:
         await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
         self._database_operation_assistant.stop_recording(user_id=user_id)
 
-    _handling_functions_by_recordtype = {
+    _HANDLING_FUNCTIONS_BY_RECORDTYPE = {
         TYPE_RECORDING[0]: _final_handle_registration_message,
         TYPE_RECORDING[1]: _final_handle_changing_account_info_message,
         TYPE_RECORDING[2]: _final_handle_changing_searching_params_message}

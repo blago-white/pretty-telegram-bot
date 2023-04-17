@@ -2,10 +2,11 @@ import aiogram
 import inspect
 from typing import Callable, Union
 
+from ...handlers.eventhandlers import event_handler
+from ...botmessages import botmessages
+
 from src.prettybot.bot import _lightscripts
 from src.prettybot.bot.dbassistant import database_assistant
-from src.prettybot.bot.messages.botmessages import botmessages
-from src.prettybot.bot.messages.handlers.eventhandlers import event_handler
 from src.prettybot.bot.dbassistant.registrations import registration_data_handler
 from src.prettybot.exceptions import exceptions_inspector
 
@@ -38,7 +39,7 @@ class CallbackHandler:
                                               callback_query.message.message_id)
 
         user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
-        _, type_logging, stage_logging = self._database_operation_assistant.get_recording_condition(user_id=user_id)
+        _, type_recording, stage_recording = self._database_operation_assistant.get_recording_condition(user_id=user_id)
 
         payload = _unpack_callback_playload(payload_string=callback_query.data)
         type_request, type_requested_operation = payload.values()
@@ -49,8 +50,8 @@ class CallbackHandler:
             user_id=user_id,
             from_message_id=from_message_id,
             user_lang_code=user_lang_code,
-            type_logging=type_logging,
-            stage_logging=stage_logging
+            type_recording=type_recording,
+            stage_recording=stage_recording
         )
 
         callback_handler = self._callback_request_handler.get_handler_by_type_request(type_request=type_request)
@@ -154,23 +155,23 @@ class RequestTypeHandler:
         type_requested_operation = handler_kwargs['type_requested_operation']
         user_id = handler_kwargs['user_id']
         user_lang_code = handler_kwargs['user_lang_code']
-        stage_logging = handler_kwargs['stage_logging']
-        type_logging = handler_kwargs['type_logging']
+        stage_recording = handler_kwargs['stage_recording']
+        type_recording = handler_kwargs['type_recording']
 
         self._registration_data_handler.record_user_param(
             user_id=user_id,
             message_payload=type_requested_operation,
-            record_stage=stage_logging,
-            record_type=type_logging
+            record_stage=stage_recording,
+            record_type=type_recording
         )
 
-        if type_logging == TYPE_RECORDING[0]:
+        if type_recording == TYPE_RECORDING[0]:
             await self._large_message_renderer.render_main_message(
                 user_id=user_id,
                 description=STATEMENTS_BY_LANG[user_lang_code].q_desc
             )
 
-        elif type_logging == TYPE_RECORDING[2]:
+        elif type_recording == TYPE_RECORDING[2]:
             await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
 
         self._database_operation_assistant.increase_recording_stage(user_id=user_id)

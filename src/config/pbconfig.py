@@ -1,4 +1,5 @@
 from .statements import en, ru, general
+from .cities_config import BOT_SUPPORTED_CITIES_LISTING
 
 STATEMENTS_BY_LANG = {'en': en, 'ru': ru}
 

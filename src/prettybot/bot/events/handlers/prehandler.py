@@ -2,7 +2,7 @@ from typing import Callable, Union
 import aiogram
 
 from src.prettybot import bot
-from src.prettybot.bot.messages import chat_interaction
+from src.prettybot.bot.events import chat_interactor
 from src.prettybot.bot.dbassistant import database_assistant
 from src.prettybot.exceptions import exceptions
 from src.config.pbconfig import *
@@ -35,7 +35,7 @@ class _UserStateValidators:
 
 class MessagePreHandler:
     _database_operation_assistant: database_assistant.Database
-    _message_interactor: chat_interaction.ChatMessagesInteractor
+    _message_interactor: chat_interactor.ChatMessagesInteractor
 
     def __init__(self, database_assistant_, message_interactor):
         self._message_interactor = message_interactor

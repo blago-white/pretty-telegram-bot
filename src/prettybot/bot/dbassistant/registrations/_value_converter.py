@@ -1,6 +1,6 @@
 from typing import Union
 
-from src.prettybot.bot import _lightscripts
+from ... import _lightscripts
 
 from src.config.recording_stages import *
 

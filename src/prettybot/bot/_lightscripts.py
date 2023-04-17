@@ -1,7 +1,7 @@
 from typing import Union
 
+from .callback.callback_keyboards import *
 from src.config.recording_stages import *
-from src.prettybot.bot.callback.callback_keyboards import *
 
 
 def convert_sex_type(obj: Union[bool, str]) -> Union[bool, str]:
@@ -27,7 +27,7 @@ def get_inline_keyboard_by_stage(recordstage: str, recordtype: str, user_lang_co
 
 def get_shifted_recordstage_for_main_record_type(record_type: str,
                                                  record_stage: str,
-                                                 user_answer_valid: str) -> str:
+                                                 user_answer_is_valid: bool) -> str:
     if record_type == MAIN_RECORDING_TYPE:
-        return record_stage if user_answer_valid else STAGES_RECORDING[STAGES_RECORDING.index(record_stage) - 1]
+        return record_stage if user_answer_is_valid else STAGES_RECORDING[STAGES_RECORDING.index(record_stage) - 1]
     return record_stage

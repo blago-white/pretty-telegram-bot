@@ -4,9 +4,8 @@ import psycopg2
 
 class PostgreConnection:
     _TIME_START_SESSION: int
-
-    CONNECTION: psycopg2.connect = None
-    NAMEDB: str
+    _NAMEDB: str
+    _CONNECTION: psycopg2.connect = None
 
     def __init__(self, nameDB: str, user: str, password: str) -> None:
 
@@ -17,20 +16,23 @@ class PostgreConnection:
         """
 
         self._TIME_START_SESSION = 0
-        self.NAMEDB = nameDB
+        self._NAMEDB = nameDB
 
         self._start_connection(dbname=nameDB, password=password, user=user)
+
+    def get_postgres_connection(self):
+        return self._CONNECTION
 
     def _act_time_before_start(self, rounded: int = 8):
         if self._TIME_START_SESSION:
             return round((time.time() - self._TIME_START_SESSION), rounded)
 
     def _start_connection(self, dbname: str, password: str, user: str):
-        if not self.CONNECTION:
+        if not self._CONNECTION:
             try:
-                self.CONNECTION = psycopg2.connect(dbname=dbname,
-                                                   user=user,
-                                                   password=password)
+                self._CONNECTION = psycopg2.connect(dbname=dbname,
+                                                    user=user,
+                                                    password=password)
 
             except Exception as exception:
                 raise exception
@@ -40,9 +42,9 @@ class PostgreConnection:
             print('Connection successful! ~~~~~~~~~~~')
 
     def exit(self):
-        if self.CONNECTION:
+        if self._CONNECTION:
             try:
-                self.CONNECTION.close()
+                self._CONNECTION.close()
 
             except:
                 print('ERROR EXITING!')

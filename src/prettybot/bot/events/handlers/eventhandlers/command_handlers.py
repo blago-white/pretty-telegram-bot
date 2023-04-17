@@ -1,8 +1,9 @@
 import aiogram
 
-from src.prettybot.bot.messages.handlers.eventhandlers.event_handler import EventHandlersFields
+from ..eventhandlers.event_handler import EventHandlersFields
+from ...botmessages.botmessages import MainMessagesRenderer
+
 from src.prettybot.bot.dbassistant.database_assistant import Database
-from src.prettybot.bot.messages.botmessages.botmessages import MainMessagesRenderer
 from src.prettybot.exceptions import exceptions
 from src.config.recording_stages import *
 

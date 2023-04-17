@@ -3,23 +3,23 @@ import inspect
 import psycopg2.extras
 from typing import Union
 
-from . import _sqltemplates
+from . import _sqltemplates, _template_placeholder
 from .. import _lightscripts
 
-from src.prettybot.db import template_placeholder
-from src.prettybot.db import sql_query_executor
-from src.prettybot.db import database_connection
+from src.prettybot.db import executor, connections
 from src.prettybot.exceptions import exceptions, exceptions_inspector
 
 from src.config.dbconfig import *
 from src.config.recording_stages import *
 
+__all__ = ['Database']
+
 
 class UserRecording:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_recording_condition(self, user_id: int) -> Union[list[tuple], None]:
-        response = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=1))
+        response = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=1))
         if response:
             return response[0]
         raise exceptions.UserDataNotFoundException(
@@ -27,19 +27,19 @@ class UserRecording:
         )
 
     def stop_recording(self, user_id: int) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=3))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=3))
 
     def increase_recording_stage(self, user_id: int) -> None:
         recording, record_type, record_stage = self.get_recording_condition(user_id=user_id)
         record_stage = _increase_stage_recording(record_stage)
         if recording:
             self.executor.execute_query(
-                template_placeholder.fill_sql_template(record_type, record_stage, user_id, number_temp=4)
+                _template_placeholder.fill_sql_template(record_type, record_stage, user_id, number_temp=4)
             )
 
     def start_recording(self, user_id: int, record_type: str, record_stage: str) -> None:
         self.executor.execute_query(
-            template_placeholder.fill_sql_template(record_type, record_stage, user_id, number_temp=4)
+            _template_placeholder.fill_sql_template(record_type, record_stage, user_id, number_temp=4)
         )
 
 
@@ -47,7 +47,7 @@ class UserChatting:
     _ON_NOT_FINDED_INTERLOCUTOR_ID = -1
 
     def user_in_chatting(self, user_id: int) -> Union[bool, exceptions.UserDataNotFoundException]:
-        data = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=23))
+        data = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=23))
         if (type(data) is list) and data:
             return data[0][0]
 
@@ -60,59 +60,60 @@ class UserChatting:
 
     def start_chatting(self, user_id: int, interlocator_id: int) -> None:
         user_buffered = bool(self.executor.execute_query(
-            template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
+            _template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
         ))
         if user_buffered:
             raise exceptions.UserNotRemovedFromBufferException(
                 exceptions_inspector.get_traceback(stack=inspect.stack(), exception='User bufferized now!')
             )
 
-        self.executor.execute_query(template_placeholder.fill_sql_template(True, int(user_id), number_temp=24))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(True, int(user_id), number_temp=24))
         self._add_interlocator_id(user_id=user_id, interlocator_id=interlocator_id)
 
     def stop_chatting(self, user_id: int) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(False, int(user_id), number_temp=24))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(False, int(user_id), number_temp=24))
         self._delete_interlocator_id(user_id=user_id)
 
     def _add_interlocator_id(self, user_id: int, interlocator_id: int) -> None:
         self.executor.execute_query(
-            template_placeholder.fill_sql_template(int(interlocator_id), int(user_id), number_temp=31)
+            _template_placeholder.fill_sql_template(int(interlocator_id), int(user_id), number_temp=31)
         )
 
     def _get_interlocator_id(self, user_id: int) -> Union[int, None]:
-        interlocator_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=33))
+        interlocator_id = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=33))
         return interlocator_id[0][0] if interlocator_id else self._ON_NOT_FINDED_INTERLOCUTOR_ID
 
     def _delete_interlocator_id(self, user_id: int) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(int(user_id), number_temp=32))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(int(user_id), number_temp=32))
 
 
 class UserBuffer:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_user_buffer_status(self, user_id: int) -> bool:
         from_bufer_data = self.executor.execute_query(
-            sqlquery=template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
+            sqlquery=_template_placeholder.fill_sql_template('users_searching_buffer', int(user_id), number_temp=19)
         )
 
         return True if from_bufer_data else False
 
     def buffering_user_with_params(self, user_id: int) -> None:
         self.executor.execute_query(
-            sqlquery=template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), True, number_temp=27)
+            sqlquery=_template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), True,
+                                                             number_temp=27)
         )
 
     def buffering_user_without_params(self, user_id: int) -> None:
         self.executor.execute_query(
-            template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), False, number_temp=27)
+            _template_placeholder.fill_sql_template(int(user_id), datetime.datetime.now(), False, number_temp=27)
         )
 
     def del_user_from_buffer(self, user_id: int) -> None:
-        self.executor.execute_query(sqlquery=template_placeholder.fill_sql_template(user_id, number_temp=26))
+        self.executor.execute_query(sqlquery=_template_placeholder.fill_sql_template(user_id, number_temp=26))
 
 
 class UserLanguage:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_user_lang_or_default(self, user_id: int) -> str:
         try:
@@ -121,21 +122,21 @@ class UserLanguage:
             return DEFAULT_LANG
 
     def change_user_lang(self, user_id: int, lang_code: str) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(lang_code, user_id, number_temp=21))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(lang_code, user_id, number_temp=21))
 
 
 class UserRecords:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def add_new_user(self, user_id, fname, lname, telegname, date_message) -> Union[BaseException, None]:
         responses = (
-            self.executor.execute_query(template_placeholder.fill_sql_template(
+            self.executor.execute_query(_template_placeholder.fill_sql_template(
                 user_id, fname, lname, telegname, date_message, number_temp=7)),
 
-            self.executor.execute_query(template_placeholder.fill_sql_template(
+            self.executor.execute_query(_template_placeholder.fill_sql_template(
                 user_id, True, DEFAULT_RECORD_TYPE, DEFAULT_RECORD_STAGE, False, number_temp=8)),
 
-            self.executor.execute_query(template_placeholder.fill_sql_template(
+            self.executor.execute_query(_template_placeholder.fill_sql_template(
                 user_id, number_temp=9))
         )
 
@@ -156,70 +157,70 @@ class UserRecords:
             return {{table_name: fetch_results[idx]} for idx, table_name in enumerate(USER_DATA_TABLES)}
 
     def check_user_exists(self, user_id: int) -> bool:
-        user_record = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=30))
+        user_record = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=30))
         return bool(user_record)
 
     def delete_user_records(self, user_id: int) -> None:
         for dbname in TABLES:
-            self.executor.execute_query(template_placeholder.fill_sql_template(dbname, user_id, number_temp=20))
+            self.executor.execute_query(_template_placeholder.fill_sql_template(dbname, user_id, number_temp=20))
 
 
 class UserSearching:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def record_user_searching_param(self, user_id: int, name_param: str, value_param: Union[str, int, bool]) -> None:
         self.executor.execute_query(
-            sqlquery=template_placeholder.fill_sql_template(name_param, value_param, user_id, number_temp=10)
+            sqlquery=_template_placeholder.fill_sql_template(name_param, value_param, user_id, number_temp=10)
         )
 
     def get_user_id_without_params(self, user_id: int) -> Union[int, None]:
-        users = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=25))
+        users = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=25))
         return users[0][0] if type(users) is list and users else list(tuple())
 
-    def get_user_id_by_params(self, user_id: int,
-                              age_range: psycopg2.extras.NumericRange,
-                              city: str,
-                              sex: bool) -> Union[int, None]:
-
+    def get_user_id_by_params(
+            self, user_id: int,
+            age_range: psycopg2.extras.NumericRange,
+            city: str,
+            sex: bool) -> Union[int, None]:
         users = self.executor.execute_query(
-            template_placeholder.fill_sql_template(age_range, city, sex, user_id, number_temp=18)
+            _template_placeholder.fill_sql_template(age_range, city, sex, user_id, number_temp=18)
         )
 
         return users[0][0] if type(users) is list and users else list(tuple())
 
 
 class UserPhotos:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_photo_id(self, user_id: int) -> str:
-        photo_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=28))
+        photo_id = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=28))
         return photo_id[0][0] if type(photo_id) is list and photo_id else ''
 
     def update_photo_id(self, user_id: int, file_id: str) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(file_id, user_id, number_temp=6))
 
     def save_photo_id(self, user_id: int, file_id: str) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(user_id, file_id, number_temp=5))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, file_id, number_temp=5))
 
 
 class UserWishes:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_user_wishes(self, user_id: int) -> list[tuple]:
-        return self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=2))[0]
+        return self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=2))[0]
 
     def record_new_wish_param(self, user_id: int, name_param: str, value_param: Union[str, int, bool]) -> None:
         if name_param in COLUMNS_WITH_WISHES:
-            self.executor.execute_query(template_placeholder.fill_sql_template(
+            self.executor.execute_query(_template_placeholder.fill_sql_template(
                 name_param, value_param, user_id, number_temp=10
             ))
 
 
 class UserMessages:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_main_message(self, user_id: int) -> int:
-        message_id = self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=16))
+        message_id = self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=16))
         return int(message_id[0][0]) if type(message_id) is list and message_id else 0
 
     def set_main_message_id(self, user_id: int, message_id: int) -> None:
@@ -227,79 +228,58 @@ class UserMessages:
         setting_method(self, user_id=user_id, message_id=message_id)
 
     def delete_main_message(self, user_id) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(user_id, number_temp=15))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, number_temp=15))
 
     def _update_main_message_id(self, user_id: int, message_id: int) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(message_id, user_id, number_temp=29))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(message_id, user_id, number_temp=29))
 
     def _add_main_message_id(self, user_id: int, message_id: int) -> None:
-        self.executor.execute_query(template_placeholder.fill_sql_template(user_id, message_id, number_temp=14))
+        self.executor.execute_query(_template_placeholder.fill_sql_template(user_id, message_id, number_temp=14))
 
     _setting_function = {True: _update_main_message_id,
                          False: _add_main_message_id}
 
 
 class UserCities:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
     _cities: dict[str] = dict()
 
     def get_cities(self) -> dict[str]:
         if not self._cities:
             self._set_cities()
-
+        print(self._cities)
         return self._cities
 
     def _set_cities(self) -> None:
-        cities_from_db = self.executor.execute_query(template_placeholder.fill_sql_template(number_temp=17))
+        cities_from_db = self.executor.execute_query(_template_placeholder.fill_sql_template(number_temp=17))
         self._cities = self._reformat_cities_list(cities=cities_from_db)
-
-    @staticmethod
-    def _reformat_cities_list(cities: list) -> dict[str]:
-        if type(cities) is not list:
-            raise TypeError(str(type(cities)))
-
-        reformated_cities = dict()
-        for city in cities:
-            name_city, region, _ = city
-            for abbreviation in CITY_NAME_ABBREVIATIONS:
-                region = region.replace(abbreviation, CITY_NAME_ABBREVIATIONS[abbreviation])
-
-            reformated_cities.update({str.lower(name_city): CITI_LONG_VIEW.format(name_city, region)})
-
-        return reformated_cities
 
 
 class DBTables:
-    executor: sql_query_executor.Excecutor
+    executor: executor.Excecutor
 
     def get_user_data_by_table(self, user_id: int, table_name: str) -> Union[list[tuple], BaseException, None]:
-        return self.executor.execute_query(template_placeholder.fill_sql_template(table_name,
-                                                                                  int(user_id),
-                                                                                  number_temp=19))
+        return self.executor.execute_query(_template_placeholder.fill_sql_template(table_name,
+                                                                                   int(user_id),
+                                                                                   number_temp=19))
 
 
 class Database(UserRecording, UserChatting,
                UserBuffer, UserLanguage, UserRecords, UserSearching,
                UserPhotos, UserWishes, UserMessages, UserCities, DBTables):
-
-    executor: sql_query_executor.Excecutor
-    _postgre_connection: database_connection
+    executor: executor.Excecutor
+    _postgre_connector: connections.PostgreConnection
 
     def __init__(self, namedb: str, password: str, user: str):
-        self._postgre_connection = database_connection.PostgreConnection(nameDB=namedb,
-                                                                         password=password,
-                                                                         user=user)
+        self._postgre_connector = connections.PostgreConnection(nameDB=namedb, password=password, user=user)
+        self.executor = executor.Excecutor(postgre_connection=self._postgre_connector.get_postgres_connection())
 
-        self.executor = sql_query_executor.Excecutor(connection_=self._postgre_connection.CONNECTION)
-
-        template_placeholder.set_templates(_sqltemplates.templates)
-
-        if (not self.executor) or (not self._postgre_connection):
+        if (not self.executor) or (not self._postgre_connector):
             raise ConnectionError('error with initializing database')
 
     def exit(self) -> None:
-        if self._postgre_connection:
-            self._postgre_connection.exit()
+        if self._postgre_connector:
+            self._postgre_connector.exit()
 
 
 def _increase_stage_recording(stage_recording: str) -> str:

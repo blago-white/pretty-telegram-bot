@@ -2,8 +2,8 @@ from typing import Union, Callable
 
 from . import _age_range_creator
 from . import _value_converter
+from ...dbassistant import database_assistant
 
-from src.prettybot.bot.dbassistant import database_assistant
 from src.config.recording_stages import *
 
 
@@ -45,7 +45,7 @@ class RegistrationParamsHandler:
 
         if record_type != TYPE_RECORDING[2]:
             self._database_operation_assistant.record_user_searching_param(user_id=user_id,
-                                                                           name_param=NAME_COLUMN_BY_LOGSTAGE[
+                                                                           name_param=NAME_COLUMN_BY_RECORD_STAGE[
                                                                                record_stage],
                                                                            value_param=column_value)
 
@@ -57,7 +57,7 @@ class RegistrationParamsHandler:
                 )
 
             self._database_operation_assistant.record_user_searching_param(user_id=user_id,
-                                                                           name_param=NAME_WISH_COLUMN_BY_LOGSTAGE[
+                                                                           name_param=NAME_WISH_COLUMN_BY_RECORD_STAGE[
                                                                                record_stage],
                                                                            value_param=column_value
                                                                            )

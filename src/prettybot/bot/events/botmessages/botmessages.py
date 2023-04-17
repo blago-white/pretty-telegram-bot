@@ -3,13 +3,13 @@ from typing import Union
 import aiogram.types
 import inspect
 
-from src.prettybot.bot.dbassistant import database_assistant
-from src.prettybot.dataclass import dataclass
-from src.prettybot.bot.messages import chat_interaction
-from src.prettybot.bot import _lightscripts
-from src.prettybot.bot.asyncioscripts import delay
+from ...dbassistant import database_assistant
+from ... import _lightscripts
+from ...events import chat_interactor
+
 from src.prettybot.exceptions import exceptions, exceptions_inspector
-from src.prettybot.bot.callback.callback_keyboards import *
+
+from ...callback.callback_keyboards import *
 from src.config.pbconfig import *
 
 __all__ = ['MainMessageTextGenerator',
@@ -55,12 +55,12 @@ class MainMessageTextGenerator:
 
 class MainMessagesRenderer:
     _database_operation_assistant: database_assistant.Database
-    _message_interactor: chat_interaction.ChatMessagesInteractor
+    _message_interactor: chat_interactor.ChatMessagesInteractor
     _main_message_text_generator: MainMessageTextGenerator
 
     def __init__(
             self, database_operation_assistant: database_assistant.Database,
-            message_interactor: chat_interaction.ChatMessagesInteractor,
+            message_interactor: chat_interactor.ChatMessagesInteractor,
             main_message_text_generator: MainMessageTextGenerator):
         self._message_interactor = message_interactor
         self._database_operation_assistant = database_operation_assistant
@@ -78,12 +78,12 @@ class MainMessagesRenderer:
                                                                                user_lang_code=user_lang_code)
 
         sended_message_id = await self._message_interactor.send_photo(user_id=user_id,
-                                                                  photo_id=profile_photo_id,
-                                                                  description=profile_body,
-                                                                  keyboard=INLINE_PROFILE_KB[user_lang_code]
-                                                                  )
+                                                                      photo_id=profile_photo_id,
+                                                                      description=profile_body,
+                                                                      keyboard=INLINE_PROFILE_KB[user_lang_code]
+                                                                      )
 
-        await self._update_main_message(user_id=user_id, sended_message_id=sended_message_id.object)
+        await self._update_main_message(user_id=user_id, sended_message_id=sended_message_id)
 
     async def render_finding_message(
             self, user_id: int,
@@ -117,13 +117,10 @@ class MainMessagesRenderer:
             description: str,
             delay_before_deleting: int) -> None:
         sended_message_id = await self._message_interactor.send(user_id=int(user_id), description=str(description))
-        await delay.postpone_async_task(
-            self._message_interactor.delete_message(user_id=user_id, message_id=sended_message_id.object),
+        await _async_delayer.postpone_async_task(
+            self._message_interactor.delete_message(user_id=user_id, message_id=sended_message_id),
             delay=delay_before_deleting
         )
-        return exceptions.UserDataNotFoundException(
-            exceptions_inspector.get_traceback(stack=inspect.stack())
-        ) if not sended_message_id.status else None
 
     async def render_main_message(
             self, user_id: int,
@@ -131,7 +128,7 @@ class MainMessagesRenderer:
             markup: aiogram.types.InlineKeyboardMarkup = INLINE_EMPTY_KB) -> None:
 
         sended_message_id = await self._message_interactor.send(user_id=user_id, description=description, markup=markup)
-        await self._update_main_message(user_id=user_id, sended_message_id=sended_message_id.object)
+        await self._update_main_message(user_id=user_id, sended_message_id=sended_message_id)
 
     async def delete_main_message_from_all(self, user_id: int) -> None:
         message_id = self._database_operation_assistant.get_main_message(user_id=int(user_id))

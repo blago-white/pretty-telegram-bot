@@ -1,9 +1,11 @@
 from src.config.pbconfig import *
 
-__all__ = ['get_similar_cities']
+__all__ = ['get_similar_cities_list']
 
 
-def generate_drop_down_cities_list(cities_list: list) -> str:
+def get_similar_cities_list(city: str) -> str:
+    cities_list = _get_similar_cities(city=city, cities=BOT_SUPPORTED_CITIES_LISTING)
+
     if len(cities_list) > MAX_LEN_SAMPLING_CITIES:
         cities_list[MAX_LEN_SAMPLING_CITIES] += BASE_STATEMENTS.overflow
         cities_list = cities_list[:MAX_LEN_SAMPLING_CITIES + 1]
@@ -11,10 +13,8 @@ def generate_drop_down_cities_list(cities_list: list) -> str:
     return BASE_STATEMENTS.city_sep.join(cities_list)
 
 
-def get_similar_cities(city: str, cities: dict) -> list:
-    result_list = list()
-    previous_cities = list()
-
+def _get_similar_cities(city: str, cities: dict) -> list:
+    result_list, previous_cities = list(), list()
     for string_idx in range(1, len(city) + 1):
         result_list = _search_cities_by_coincidence(string_idx=string_idx,
                                                     city=city,
@@ -31,9 +31,8 @@ def get_similar_cities(city: str, cities: dict) -> list:
 
 def _search_cities_by_coincidence(string_idx: int, city: str, cities: dict[str], length_border: int) -> list:
     compressed_cities_list = [correct_city.capitalize()
-                              for correct_city in cities
-                              if correct_city[:string_idx]
-                              == city[:string_idx]]
+                              for correct_city in cities if correct_city[:string_idx] == city[:string_idx]
+                              ]
 
     if len(compressed_cities_list) <= length_border:
         return [cities[correct_city] for correct_city in cities if correct_city[:string_idx] == city[:string_idx]]

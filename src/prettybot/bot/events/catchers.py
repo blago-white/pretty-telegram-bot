@@ -1,9 +1,7 @@
 import aiogram
 
-from src.prettybot.bot.messages.handlers.eventhandlers import callback_handler
-from src.prettybot.bot.messages.handlers.eventhandlers import command_handlers
-from src.prettybot.bot.messages.handlers.eventhandlers import content_type_handlers
-from src.prettybot.bot.messages.handlers.prehandler import MessagePreHandler
+from .handlers.eventhandlers import callback_handler, command_handlers, content_type_handlers
+from .handlers.prehandler import MessagePreHandler
 
 
 class CallbackCatcher:

@@ -1,6 +1,6 @@
 import aiogram
 
-from ..messages import catchers
+from ..events import catchers
 
 
 def registrate_handlers(dispatcher: aiogram.dispatcher,

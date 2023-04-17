@@ -1,10 +1,10 @@
 import aiogram
 
 from .handling_routes import routes_registrator, handlers_routes
-from .messages import catchers, chat_interaction
-from .messages.botmessages import botmessages
-from .messages.handlers import prehandler
-from .messages.handlers.eventhandlers import event_handler, command_handlers, content_type_handlers, callback_handler
+from .events import catchers, chat_interactor
+from .events.botmessages import botmessages
+from .events.handlers import prehandler
+from .events.handlers.eventhandlers import event_handler, command_handlers, content_type_handlers, callback_handler
 from .dbassistant.registrations import registration_data_handler
 
 from src.config import pbconfig
@@ -18,7 +18,7 @@ def start_bot(db_scripts, bot_token: str):
     except Exception as exeption:
         raise exeption
 
-    message_interactor = chat_interaction.ChatMessagesInteractor(bot=bot)
+    message_interactor = chat_interactor.ChatMessagesInteractor(bot=bot)
 
     prehandler_ = prehandler.MessagePreHandler(database_assistant_=db_scripts, message_interactor=message_interactor)
 

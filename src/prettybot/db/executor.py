@@ -1,11 +1,16 @@
 from typing import Union
-from psycopg2.extensions import connection
-from ._exceptions import SQLSintaxError
+
+import psycopg2.extensions
+from psycopg2 import extensions
+
+from . import _exceptions
+
+__all__ = ['Excecutor']
 
 
 class Excecutor:
-    def __init__(self, connection_: connection):
-        self.postgres_connection = connection_
+    def __init__(self, postgre_connection: extensions.connection):
+        self._postgres_connection = postgre_connection
 
     def execute_query(self, sqlquery: str) -> Union[tuple, None]:
 
@@ -14,15 +19,14 @@ class Excecutor:
         :return: if successfully - data of fetch (all) or None if operation is not SELECT or the condition did not
         give a result else - baseexception
         """
-
-        with self.postgres_connection.cursor() as connection_:
+        with self._postgres_connection.cursor() as connection_:
             try:
                 connection_.execute(sqlquery)
             except Exception as exception:
-                raise SQLSintaxError(f'POSTGRES ERROR: {str(exception)}')
+                raise _exceptions.SQLSintaxError(f'POSTGRES ERROR: {str(exception)}')
 
             try:
                 return connection_.fetchall()
 
             except:
-                self.postgres_connection.commit()
+                self._postgres_connection.commit()
