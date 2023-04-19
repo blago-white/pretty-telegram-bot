@@ -1,27 +1,27 @@
 import aiogram
 
-from ..eventhandlers import event_handler
 from ...botmessages import botmessages
 from ... import chat_interactor
 from ...handlers.user_answers_handler import user_answers_handler
 
 from src.prettybot.bot import _lightscripts
 from src.prettybot.bot.dbassistant import database_assistant
-from src.prettybot.bot.dbassistant.registrations import registration_data_handler
+from src.prettybot.bot.dbassistant.registrations.registration_data_handler import RegistrationParamsHandler
 
 from src.config.recording_stages import *
 
 
 class ContentTypesHandler:
-    _database_operation_assistant: database_assistant.Database
-    _message_interactor: chat_interactor.ChatMessagesInteractor
-    _large_message_renderer: botmessages.MainMessagesRenderer
-    _registration_data_handler: registration_data_handler.RegistrationParamsHandler
-
-    def __init__(self, bot_handlers_fields: event_handler.EventHandlersFields):
-        self.__dict__ = {param: bot_handlers_fields.__dict__[param]
-                         for param in bot_handlers_fields.__dict__
-                         if param in ContentTypesHandler.__annotations__}
+    def __init__(
+            self, database_operation_assistant: database_assistant.BotDatabase,
+            message_interactor: chat_interactor.ChatMessagesInteractor,
+            large_message_renderer: botmessages.MainMessagesRenderer,
+            registration_data_handler: RegistrationParamsHandler
+    ):
+        self._database_operation_assistant = database_operation_assistant
+        self._message_interactor = message_interactor
+        self._large_message_renderer = large_message_renderer
+        self._registration_data_handler = registration_data_handler
 
     async def handle_photo(self, message: aiogram.types.Message, user_id: int, user_lang_code: str) -> None:
         recording, record_type, record_stage = self._database_operation_assistant.get_recording_condition(

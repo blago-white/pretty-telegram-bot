@@ -9,7 +9,7 @@ from src.config.pbconfig import *
 
 
 class _UserStateValidators:
-    def __init__(self, database_assistant_: database_assistant.Database):
+    def __init__(self, database_assistant_: database_assistant.BotDatabase):
         self._database_operation_assistant = database_assistant_
 
     def validate_user_state(self, message: aiogram.types.Message, user_chatting_condition: Union[bool, None]) -> bool:
@@ -34,7 +34,7 @@ class _UserStateValidators:
 
 
 class MessagePreHandler:
-    _database_operation_assistant: database_assistant.Database
+    _database_operation_assistant: database_assistant.BotDatabase
     _message_interactor: chat_interactor.ChatMessagesInteractor
 
     def __init__(self, database_assistant_, message_interactor):

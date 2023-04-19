@@ -1,21 +1,16 @@
 import aiogram
 
-from ..eventhandlers.event_handler import EventHandlersFields
 from ...botmessages.botmessages import MainMessagesRenderer
 
-from src.prettybot.bot.dbassistant.database_assistant import Database
+from src.prettybot.bot.dbassistant.database_assistant import BotDatabase
 from src.prettybot.exceptions import exceptions
 from src.config.recording_stages import *
 
 
 class CommandsHandler:
-    _database_operation_assistant: Database
-    _large_message_renderer: MainMessagesRenderer
-
-    def __init__(self, bot_handlers_fields: EventHandlersFields):
-        self.__dict__ = {param: bot_handlers_fields.__dict__[param]
-                         for param in bot_handlers_fields.__dict__
-                         if param in CommandsHandler.__annotations__}
+    def __init__(self, database_operation_assistant: BotDatabase, large_message_renderer: MainMessagesRenderer):
+        self._database_operation_assistant = database_operation_assistant
+        self._large_message_renderer = large_message_renderer
 
     async def handle_start(self, message: aiogram.types.Message, user_id: int, user_lang_code: str):
         try:

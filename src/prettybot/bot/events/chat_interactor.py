@@ -1,5 +1,4 @@
-import aiogram
-from aiogram.types import ParseMode
+import aiogram.types
 from typing import Union
 
 from src.prettybot.bot.callback.callback_keyboards import *
@@ -19,7 +18,7 @@ class ChatMessagesInteractor:
             user_id: int,
             photo_id: str,
             description: str = None,
-            parse_mode: aiogram.types.ParseMode = ParseMode.HTML,
+            parse_mode: str = 'HTML',
             keyboard: aiogram.types.InlineKeyboardMarkup = INLINE_EMPTY_KB) -> int:
 
         """
@@ -48,7 +47,7 @@ class ChatMessagesInteractor:
             self,
             user_id: int,
             description: str = None,
-            parse_mode: aiogram.types.ParseMode = ParseMode.HTML,
+            parse_mode: str = 'HTML',
             markup: aiogram.types.InlineKeyboardMarkup = None
     ) -> int:
 
@@ -78,7 +77,7 @@ class ChatMessagesInteractor:
             description: str = None,
             user_lang_code: str = DEFAULT_LANG,
             markup: aiogram.types.InlineKeyboardMarkup = INLINE_EMPTY_KB,
-            parse_mode: aiogram.types.ParseMode = ParseMode.HTML) -> int:
+            parse_mode: str = 'HTML') -> int:
 
         """
         :param user_id: integer, user id

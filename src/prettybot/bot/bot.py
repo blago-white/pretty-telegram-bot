@@ -1,71 +1,74 @@
 import aiogram
 
 from .handling_routes import routes_registrator, handlers_routes
+from .dbassistant.database_assistant import BotDatabase
 from .events import catchers, chat_interactor
 from .events.botmessages import botmessages
 from .events.handlers import prehandler
-from .events.handlers.eventhandlers import event_handler, command_handlers, content_type_handlers, callback_handler
+from .events.handlers.eventhandlers import events_handler, commands_handler, content_types_handler, callback_handler
 from .dbassistant.registrations import registration_data_handler
 
-from src.config import pbconfig
+from ...config import pbconfig
+
+__all__ = ['start_bot']
 
 
-def start_bot(db_scripts, bot_token: str):
-    try:
-        bot = aiogram.Bot(token=bot_token)
-        dp = aiogram.Dispatcher(bot)
-
-    except Exception as exeption:
-        raise exeption
+def start_bot(bot_database_assistant: BotDatabase, bot_token: str) -> None:
+    bot = _get_bot_instance(token=bot_token)
+    dp = _get_dispatcher(bot=bot)
 
     message_interactor = chat_interactor.ChatMessagesInteractor(bot=bot)
-
-    prehandler_ = prehandler.MessagePreHandler(database_assistant_=db_scripts, message_interactor=message_interactor)
+    prehandler_ = prehandler.MessagePreHandler(database_assistant_=bot_database_assistant,
+                                               message_interactor=message_interactor)
 
     large_message_renderer = botmessages.MainMessagesRenderer(
-        database_operation_assistant=db_scripts,
-        main_message_text_generator=botmessages.MainMessageTextGenerator(database_operation_assistant=db_scripts),
+        database_operation_assistant=bot_database_assistant,
         message_interactor=message_interactor
     )
 
     registration_data_handler_ = registration_data_handler.RegistrationParamsHandler(
-        database_operation_assistant=db_scripts
+        database_operation_assistant=bot_database_assistant
     )
 
-    handlers_fields = event_handler.EventHandlersFields(database_operation_assistant=db_scripts,
-                                                        bot=bot,
-                                                        message_interactor=message_interactor,
-                                                        large_message_renderer=large_message_renderer,
-                                                        registration_data_handler_=registration_data_handler_)
-
-    command_handler = command_handlers.CommandsHandler(bot_handlers_fields=handlers_fields)
-    content_type_handler = content_type_handlers.ContentTypesHandler(bot_handlers_fields=handlers_fields)
-    callback_handler_ = callback_handler.CallbackHandler(bot_handlers_fields=handlers_fields)
+    events_handler_ = events_handler.EventsHandler(database_operation_assistant=bot_database_assistant,
+                                                   bot=bot,
+                                                   message_interactor=message_interactor,
+                                                   large_message_renderer=large_message_renderer,
+                                                   registration_data_handler=registration_data_handler_)
 
     routes = handlers_routes.get_handlers_routes(
-        bot_commands_handler=command_handler,
-        bot_content_types_handler=content_type_handler
+        bot_commands_handler=events_handler_.command_handler,
+        bot_content_types_handler=events_handler_.content_types_handler
     )
 
     message_catcher = catchers.MessageCatcher(
-        content_type_handler=content_type_handler,
         prehandler=prehandler_,
         command_handlers_routes=routes['command_handlers_routes'],
         content_type_handlers_routes=routes['content_types_routes']
     )
 
-    callback_catcher = catchers.CallbackCatcher(
-        callback_handler_=callback_handler_
-    )
-
     routes_registrator.registrate_handlers(dispatcher=dp,
                                            message_catcher=message_catcher,
-                                           callback_catcher=callback_catcher,
+                                           callback_handler=events_handler_.callback_handler,
                                            tracked_commands=pbconfig.BOT_COMMANDS,
                                            tracked_content_types=pbconfig.BOT_CONTENT_TYPES)
 
     _start_dispatcher(dp=dp)
 
 
-def _start_dispatcher(dp: aiogram.Dispatcher):
+def _get_dispatcher(bot: aiogram.Bot) -> aiogram.Dispatcher:
+    try:
+        return aiogram.Dispatcher(bot=bot)
+    except Exception as exception:
+        raise exception
+
+
+def _get_bot_instance(token: str) -> aiogram.Bot:
+    try:
+        return aiogram.Bot(token=token)
+    except Exception as exception:
+        raise exception
+
+
+def _start_dispatcher(dp: aiogram.Dispatcher) -> None:
     aiogram.executor.start_polling(dispatcher=dp, skip_updates=True)

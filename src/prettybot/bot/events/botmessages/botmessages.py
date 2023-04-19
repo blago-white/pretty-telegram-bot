@@ -3,8 +3,8 @@ from typing import Union
 import aiogram.types
 import inspect
 
+from ... import _lightscripts, _async_delayer
 from ...dbassistant import database_assistant
-from ... import _lightscripts
 from ...events import chat_interactor
 
 from src.prettybot.exceptions import exceptions, exceptions_inspector
@@ -17,8 +17,6 @@ __all__ = ['MainMessageTextGenerator',
 
 
 class MainMessageTextGenerator:
-    _database_operation_assistant: database_assistant.Database
-
     def __init__(self, database_operation_assistant):
         self._database_operation_assistant = database_operation_assistant
 
@@ -54,17 +52,19 @@ class MainMessageTextGenerator:
 
 
 class MainMessagesRenderer:
-    _database_operation_assistant: database_assistant.Database
+    _database_operation_assistant: database_assistant.BotDatabase
     _message_interactor: chat_interactor.ChatMessagesInteractor
     _main_message_text_generator: MainMessageTextGenerator
 
     def __init__(
-            self, database_operation_assistant: database_assistant.Database,
-            message_interactor: chat_interactor.ChatMessagesInteractor,
-            main_message_text_generator: MainMessageTextGenerator):
+            self, database_operation_assistant: database_assistant.BotDatabase,
+            message_interactor: chat_interactor.ChatMessagesInteractor):
         self._message_interactor = message_interactor
         self._database_operation_assistant = database_operation_assistant
-        self._main_message_text_generator = main_message_text_generator
+
+        self._main_message_text_generator = MainMessageTextGenerator(
+            database_operation_assistant=database_operation_assistant
+        )
 
     async def render_profile(
             self, user_id: int,

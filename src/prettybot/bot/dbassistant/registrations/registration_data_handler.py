@@ -8,9 +8,9 @@ from src.config.recording_stages import *
 
 
 class RegistrationParamsHandler:
-    _database_operation_assistant: database_assistant.Database
+    _database_operation_assistant: database_assistant.BotDatabase
 
-    def __init__(self, database_operation_assistant: database_assistant.Database) -> None:
+    def __init__(self, database_operation_assistant: database_assistant.BotDatabase) -> None:
         self._database_operation_assistant = database_operation_assistant
 
     def _get_photo_saving_method(self, record_type: str) -> Union[Callable[[int, str], None], ValueError]:

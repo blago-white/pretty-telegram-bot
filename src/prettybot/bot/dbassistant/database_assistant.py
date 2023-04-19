@@ -12,7 +12,7 @@ from src.prettybot.exceptions import exceptions, exceptions_inspector
 from src.config.dbconfig import *
 from src.config.recording_stages import *
 
-__all__ = ['Database']
+__all__ = ['BotDatabase']
 
 
 class UserRecording:
@@ -264,9 +264,9 @@ class DBTables:
                                                                                    number_temp=19))
 
 
-class Database(UserRecording, UserChatting,
-               UserBuffer, UserLanguage, UserRecords, UserSearching,
-               UserPhotos, UserWishes, UserMessages, UserCities, DBTables):
+class BotDatabase(UserRecording, UserChatting,
+                  UserBuffer, UserLanguage, UserRecords, UserSearching,
+                  UserPhotos, UserWishes, UserMessages, UserCities, DBTables):
     executor: executor.Excecutor
     _postgre_connector: connections.PostgreConnection
 

@@ -1,10 +1,10 @@
 from src.config import pbconfig
-from ..events.handlers.eventhandlers import command_handlers, content_type_handlers
+from ..events.handlers.eventhandlers import commands_handler, content_types_handler
 
 
 def get_handlers_routes(
-        bot_commands_handler: command_handlers.CommandsHandler,
-        bot_content_types_handler: content_type_handlers.ContentTypesHandler):
+        bot_commands_handler: commands_handler.CommandsHandler,
+        bot_content_types_handler: content_types_handler.ContentTypesHandler):
     command_handlers_routes = {
         'start': bot_commands_handler.handle_start,
         'help': bot_commands_handler.handle_help,

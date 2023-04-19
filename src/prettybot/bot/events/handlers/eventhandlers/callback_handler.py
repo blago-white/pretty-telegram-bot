@@ -1,106 +1,41 @@
 import aiogram
 import inspect
-from typing import Callable, Union
+from typing import Callable, Union, Any
 
-from ...handlers.eventhandlers import event_handler
 from ...botmessages import botmessages
 
 from src.prettybot.bot import _lightscripts
 from src.prettybot.bot.dbassistant import database_assistant
-from src.prettybot.bot.dbassistant.registrations import registration_data_handler
+from src.prettybot.bot.dbassistant.registrations.registration_data_handler import RegistrationParamsHandler
 from src.prettybot.exceptions import exceptions_inspector
 
 from src.prettybot.bot.callback.callback_keyboards import *
 from src.config.recording_stages import *
 
+__all__ = ['CallbackHandler']
+
 
 class CallbackHandler:
-    _database_operation_assistant: database_assistant.Database
-    _bot: aiogram.Bot
-    _handling_callback_error_message_to_user = 'error on server'
+    _HANDLING_CALLBACK_ERROR_MESSAGE_TO_USER = 'error on server'
+    _ACCOUNT_DATA_CHANGING_PREFIX = 'change'
+    _FINDING_SETTINGS_CHANGING_PREFIX = 'changewish'
 
-    def __init__(self, bot_handlers_fields: event_handler.EventHandlersFields):
-        self.__dict__ = {param: bot_handlers_fields.__dict__[param]
-                         for param in bot_handlers_fields.__dict__
-                         if param in CallbackHandler.__annotations__}
-        self._callback_request_handler = RequestTypeHandler(bot_handlers_fields=bot_handlers_fields)
+    def __init__(
+            self, database_operation_assistant: database_assistant.BotDatabase,
+            bot: aiogram.Bot,
+            large_message_renderer: botmessages.MainMessagesRenderer,
+            registration_data_handler: RegistrationParamsHandler
+    ) -> None:
+        self._database_operation_assistant = database_operation_assistant
+        self._bot = bot
+        self._large_message_renderer = large_message_renderer
+        self._registration_data_handler = registration_data_handler
 
-    async def handle_callback(self, callback_query: aiogram.types.CallbackQuery) -> None:
-        try:
-            await self._respond_successful_callback_handling(query_id=callback_query.id)
-            await self._handle_callback(callback_query=callback_query)
-        except:
-            await self._respond_wrong_callback_handling(query_id=callback_query.id,
-                                                        alert_text=self._handling_callback_error_message_to_user)
-
-    async def _handle_callback(self, callback_query: aiogram.types.CallbackQuery) -> None:
-        user_id, query_id, from_message_id = (callback_query.from_user.id,
-                                              callback_query.id,
-                                              callback_query.message.message_id)
-
+    async def handle_profile_calls(self, callback_query: aiogram.types.CallbackQuery, callback_data: dict):
+        type_requested_operation = callback_data['called_operation']
+        user_id = callback_query.from_user.id
+        from_message_id = callback_query.message.message_id
         user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
-        _, type_recording, stage_recording = self._database_operation_assistant.get_recording_condition(user_id=user_id)
-
-        payload = _unpack_callback_playload(payload_string=callback_query.data)
-        type_request, type_requested_operation = payload.values()
-
-        callback_handler_kwargs = dict(
-            type_request=type_request,
-            type_requested_operation=type_requested_operation,
-            user_id=user_id,
-            from_message_id=from_message_id,
-            user_lang_code=user_lang_code,
-            type_recording=type_recording,
-            stage_recording=stage_recording
-        )
-
-        callback_handler = self._callback_request_handler.get_handler_by_type_request(type_request=type_request)
-        await self._callback_request_handler.handle_request_callback(
-            callback_handler=callback_handler, **callback_handler_kwargs
-        )
-
-    async def _respond_wrong_callback_handling(self, query_id: int, alert_text: str) -> None:
-        await self._bot.answer_callback_query(query_id, text=alert_text, show_alert=True)
-
-    async def _respond_successful_callback_handling(self, query_id: int) -> None:
-        await self._bot.answer_callback_query(query_id, show_alert=False)
-
-
-class RequestTypeHandler:
-    on_keyerror_return = KeyError
-    on_exception_return = BaseException
-    _database_operation_assistant: database_assistant.Database
-    _bot: aiogram.Bot
-    _large_message_renderer: botmessages.MainMessagesRenderer
-    _registration_data_handler: registration_data_handler.RegistrationParamsHandler
-
-    def __init__(self, bot_handlers_fields: event_handler.EventHandlersFields):
-        self.__dict__ = {param: bot_handlers_fields.__dict__[param]
-                         for param in bot_handlers_fields.__dict__
-                         if param in RequestTypeHandler.__annotations__}
-
-    def get_handler_by_type_request(self, type_request: str) -> Callable[[dict], None]:
-        return self._handler_by_type_request[type_request]
-
-    async def handle_request_callback(
-            self, callback_handler: Callable[[dict], None],
-            **handler_kwargs: dict) -> Union[KeyError, None]:
-        try:
-            await callback_handler(self, **handler_kwargs)
-        except KeyError as exception:
-            return self.on_keyerror_return(
-                exceptions_inspector.get_traceback(exception=exception, stack=inspect.stack())
-            )
-        except Exception as exception:
-            return self.on_exception_return(
-                exceptions_inspector.get_traceback(exception=exception, stack=inspect.stack())
-            )
-
-    async def _handle_main_type_request(self, **handler_kwargs) -> None:
-        type_requested_operation = handler_kwargs['type_requested_operation']
-        user_id = handler_kwargs['user_id']
-        from_message_id = handler_kwargs['from_message_id']
-        user_lang_code = handler_kwargs['user_lang_code']
 
         if type_requested_operation == 'change_profile_data':
             await self._bot.edit_message_reply_markup(chat_id=user_id,
@@ -116,47 +51,103 @@ class RequestTypeHandler:
                 user_id=user_id,
                 user_lang_code=user_lang_code)
 
-    async def _handle_changing_type_request(self, **handler_kwargs) -> None:
-        type_request = handler_kwargs['type_request']
-        type_requested_operation = handler_kwargs['type_requested_operation']
-        user_id = handler_kwargs['user_id']
-        from_message_id = handler_kwargs['from_message_id']
-        user_lang_code = handler_kwargs['user_lang_code']
+    async def handle_change_calls(self, callback_query: aiogram.types.CallbackQuery, callback_data: dict):
+        type_requested_operation = callback_data['called_operation']
+        type_request = callback_data['@']
+        user_id = callback_query.from_user.id
+        user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
 
-        if type_requested_operation != 'back':
-            callback_markup = _lightscripts.get_inline_keyboard_by_stage(
-                recordstage=STAGE_BY_PAYLOAD[type_requested_operation],
-                recordtype=TYPE_RECORDING[1 if type_request == 'change' else 2],
-                user_lang_code=user_lang_code
+        if type_requested_operation == 'back':
+            await self._bot.edit_message_reply_markup(
+                chat_id=user_id,
+                message_id=callback_query.message.message_id,
+                reply_markup=INLINE_PROFILE_KB[user_lang_code]
             )
+            return
 
-            await self._large_message_renderer.render_main_message(
-                user_id=user_id,
-                description=(QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD
-                             if type_request == 'change' else
-                             QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING
-                             )[type_requested_operation][user_lang_code],
-                markup=callback_markup
-            )
+        type_recording, stage_recording = (
+            TYPE_RECORDING[1 if type_request == self._ACCOUNT_DATA_CHANGING_PREFIX else 2],
+            STAGE_BY_PAYLOAD[type_requested_operation]
+        )
 
-        elif type_requested_operation == 'back':
-            await self._bot.edit_message_reply_markup(chat_id=user_id,
-                                                      message_id=from_message_id,
-                                                      reply_markup=INLINE_PROFILE_KB[user_lang_code])
+        callback_markup = _lightscripts.get_inline_keyboard_by_stage(
+            recordstage=stage_recording,
+            recordtype=type_recording,
+            user_lang_code=user_lang_code
+        )
+        question_text = QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD if type_recording == TYPE_RECORDING[1] else \
+            QUESTION_STATEMENT_BY_CALLBACK_PAYLOAD_FINDING
 
-        if type_requested_operation in STAGE_BY_PAYLOAD.keys():
+        await self._large_message_renderer.render_main_message(
+            user_id=user_id,
+            description=question_text[type_requested_operation][user_lang_code],
+            markup=callback_markup
+        )
+        if type_requested_operation in STAGE_BY_PAYLOAD:
             self._database_operation_assistant.start_recording(
                 user_id=user_id,
-                record_type=TYPE_RECORDING[1 if type_request == 'change' else 2],
-                record_stage=STAGE_BY_PAYLOAD[type_requested_operation]
+                record_type=type_recording,
+                record_stage=stage_recording
             )
 
-    async def _handle_sex_type_request(self, **handler_kwargs) -> None:
-        type_requested_operation = handler_kwargs['type_requested_operation']
-        user_id = handler_kwargs['user_id']
-        user_lang_code = handler_kwargs['user_lang_code']
-        stage_recording = handler_kwargs['stage_recording']
-        type_recording = handler_kwargs['type_recording']
+    async def handle_finding_cals(self, callback_query: aiogram.types.CallbackQuery, callback_data: dict):
+        user_id = callback_query.from_user.id
+        user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
+
+        try:
+            type_requested_operation = callback_data['called_operation']
+            finding_mode = None
+        except KeyError:
+            finding_mode = callback_data['finding_type']
+            type_requested_operation = None
+
+        if finding_mode:
+            finded_user_id = int()
+
+            if finding_mode == 'spec':
+                searching_settings = self._database_operation_assistant.get_user_wishes(user_id=user_id)
+                finded_user_id = self._database_operation_assistant.get_user_id_by_params(
+                    user_id=user_id,
+                    age_range=searching_settings[0],
+                    city=searching_settings[1],
+                    sex=searching_settings[2]
+                )
+
+            elif finding_mode == 'fast':
+                finded_user_id = self._database_operation_assistant.get_user_id_without_params(user_id=user_id)
+
+            if not finded_user_id:
+                await self._large_message_renderer.render_buffering_message(user_id=user_id,
+                                                                            user_lang_code=user_lang_code)
+                return
+
+            self._database_operation_assistant.del_user_from_buffer(user_id=finded_user_id)
+            finded_user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
+
+            for telegram_id in (user_id, finded_user_id):
+                await self._large_message_renderer.render_main_message(
+                    user_id=telegram_id,
+                    description=STATEMENTS_BY_LANG[
+                        finded_user_lang_code if telegram_id == finded_user_id else user_lang_code
+                    ].find_successful
+                )
+
+                self._database_operation_assistant.start_chatting(
+                    user_id=telegram_id,
+                    interlocator_id=user_id if telegram_id == finded_user_id else finded_user_id
+                )
+
+        elif type_requested_operation == 'clarify':
+            await self._large_message_renderer.render_clarify_message(user_id=user_id, user_lang_code=user_lang_code)
+
+        elif type_requested_operation == 'back':
+            await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
+
+    async def handle_sex_call(self, callback_query: aiogram.types.CallbackQuery, callback_data: dict):
+        type_requested_operation = callback_data['called_operation']
+        user_id = callback_query.from_user.id
+        user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
+        _, type_recording, stage_recording = self._database_operation_assistant.get_recording_condition(user_id=user_id)
 
         self._registration_data_handler.record_user_param(
             user_id=user_id,
@@ -164,6 +155,7 @@ class RequestTypeHandler:
             record_stage=stage_recording,
             record_type=type_recording
         )
+        self._database_operation_assistant.increase_recording_stage(user_id=user_id)
 
         if type_recording == TYPE_RECORDING[0]:
             await self._large_message_renderer.render_main_message(
@@ -172,65 +164,12 @@ class RequestTypeHandler:
             )
 
         elif type_recording == TYPE_RECORDING[2]:
-            await self._large_message_renderer.render_finding_message(user_id=user_id, user_lang_code=user_lang_code)
+            await self._large_message_renderer.render_clarify_message(user_id=user_id, user_lang_code=user_lang_code)
 
-        self._database_operation_assistant.increase_recording_stage(user_id=user_id)
-
-    async def _handle_find_type_request(self, **handler_kwargs) -> None:
-        type_requested_operation = handler_kwargs['type_requested_operation']
-        user_id = handler_kwargs['user_id']
-        user_lang_code = handler_kwargs['user_lang_code']
-
-        if type_requested_operation.split('&')[0] == 'start':
-            searching_mode, finded_user_id = type_requested_operation.split('&')[1], int()
-
-            if searching_mode == 'spec':
-                searching_settings = self._database_operation_assistant.get_user_wishes(user_id=user_id)
-                finded_user_id = self._database_operation_assistant.get_user_id_by_params(user_id=user_id,
-                                                                                          age_range=searching_settings[
-                                                                                              0],
-                                                                                          city=searching_settings[1],
-                                                                                          sex=searching_settings[2])
-
-            elif searching_mode == 'fast':
-                finded_user_id = self._database_operation_assistant.get_user_id_without_params(user_id=user_id)
-
-            if not finded_user_id:
-                await self._large_message_renderer.render_buffering_message(user_id=user_id,
-                                                                            user_lang_code=user_lang_code)
-                return
-
-            finded_user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
-
-            for telegram_id in (user_id, finded_user_id):
-                await self._large_message_renderer.render_main_message(
-                    user_id=telegram_id,
-                    description=STATEMENTS_BY_LANG[
-                        finded_user_lang_code if telegram_id == finded_user_id else user_lang_code
-                    ].find_successful)
-
-                self._database_operation_assistant.start_chatting(user_id=telegram_id,
-                                                                  interlocator_id=user_id
-                                                                  if telegram_id == finded_user_id
-                                                                  else finded_user_id
-                                                                  )
-
-            self._database_operation_assistant.del_user_from_buffer(user_id=finded_user_id)
-
-        elif type_requested_operation == 'clarify':
-            await self._large_message_renderer.render_clarify_message(
-                user_id=user_id,
-                user_lang_code=user_lang_code)
-
-        elif type_requested_operation == 'back':
-            await self._large_message_renderer.render_finding_message(
-                user_id=user_id,
-                user_lang_code=user_lang_code)
-
-    async def _handle_buffering_type_request(self, **handler_kwargs):
-        type_requested_operation = handler_kwargs['type_requested_operation']
-        user_id = handler_kwargs['user_id']
-        user_lang_code = handler_kwargs['user_lang_code']
+    async def handle_buffering_call(self, callback_query: aiogram.types.CallbackQuery, callback_data: dict):
+        type_requested_operation = callback_data['called_operation']
+        user_id = callback_query.from_user.id
+        user_lang_code = self._database_operation_assistant.get_user_lang_or_default(user_id=user_id)
 
         if type_requested_operation == 'back':
             await self._large_message_renderer.render_profile(user_id=user_id, user_lang_code=user_lang_code)
@@ -248,16 +187,3 @@ class RequestTypeHandler:
             description=STATEMENTS_BY_LANG[user_lang_code].bufferized_success,
             markup=INLINE_EXIT_BUFFER_KB[user_lang_code]
         )
-
-    _handler_by_type_request = {
-        'main': _handle_main_type_request,
-        'change': _handle_changing_type_request,
-        'changewish': _handle_changing_type_request,
-        'sex': _handle_sex_type_request,
-        'find': _handle_find_type_request,
-        'buffer': _handle_buffering_type_request,
-    }
-
-
-def _unpack_callback_playload(payload_string: str) -> dict:
-    return dict(type_request=payload_string.split('%')[0], type_requested_operation=payload_string.split('%')[1])
